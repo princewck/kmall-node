@@ -4,11 +4,22 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node ./bin/www"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.14.0"
+    "cookie-parser": "^1.4.3",
+    "express": "^4.14.0",
+    "express-mysql-session": "^1.2.0",
+    "express-session": "^1.15.0",
+    "jade": "^1.11.0",
+    "jsonwebtoken": "^7.2.1",
+    "morgan": "^1.7.0",
+    "mysql": "^2.13.0",
+    "nodemailer": "^2.7.2",
+    "orm": "^3.2.3",
+    "uuid": "^3.0.1"
   }
 }
