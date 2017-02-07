@@ -9,8 +9,8 @@ var transporter = nodemailer.createTransport({
     "port": 25,
     "secureConnection": true, // use SSL
     "auth": {
-        "user": 'master@cybpet.com', // user name
-        "pass": 'm2XBfsjnwck'         // password
+        "user": 'xxxxxxxx', // user name
+        "pass": 'xxxxxxxx'         // password
     }
 });
 
