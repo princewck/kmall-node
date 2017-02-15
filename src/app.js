@@ -11,7 +11,8 @@ var uuid = require('uuid');
 var middleware = {
     api: require('./middleware/api'),
     response: require('./middleware/response'),
-    prototype: require('./middleware/prototype')
+    prototype: require('./middleware/prototype'),
+    authenticate: require('./middleware/authenticate')
 }
 
 var routes = {
@@ -58,6 +59,7 @@ app.use(middleware.prototype);
 //自定义的中间件
 app.use(middleware.api);
 app.use(middleware.response);
+app.use('/admin', middleware.authenticate);
 //自定义的路由
 app.use('/', routes.admin, routes.test, routes.user);
 

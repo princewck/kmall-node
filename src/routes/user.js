@@ -5,8 +5,6 @@ var random = require('../common/random');
 var uuid = require('uuid');
 
 router.get('/admin/sysuser', function(req, res) {
-    res.json(req.session);
-    return ;
     var SUser = req.models.SystemUsers;
     SUser.find({status: 1}, function(err, data) {
         if (err) {
@@ -48,7 +46,7 @@ router.all('/admin/sysuser/add', function(req, res) {
     });      
 });
 
-router.post('/admin/login', function(req, res) {  
+router.post('/login', function(req, res) {  
     var username = req.body.username;
     var password = req.body.password;
     var Response = req.Response;
@@ -61,21 +59,28 @@ router.post('/admin/login', function(req, res) {
         var salt = users[0].salt;
         var decyroptedPwd = md5.update(password + salt).digest('hex');
         if (decyroptedPwd == users[0].password) {
-            users[0].token = req.sessionID;
-            req.session.user = users[0];
-            req.session.save(function(err) {
-                if (err) console.log('session saving failed');
-                console.log('logined and session user saved');
-            });
-            users[0].save(function(err) {
-                if (err) return res.send(new Response(-4, null, '登录失败！'));
-                return res.send(new Response(0, users[0], '登录成功！'));
+            req.session.regenerate(function(err) {
+                if (err) console.log('session regenerate failed');
+                users[0].token = req.sessionID;
+                req.session.user = users[0];       
+                users[0].save(function(err) {
+                    if (err) return res.send(new Response(-4, null, '登录失败！'));
+                    return res.send(new Response(0, users[0], '登录成功！'));
+                });                         
             });
         } else {
             res.send(new Response(-3, null, '用户名密码错误!'));   
         }
     });
 });
+
+
+router.post('/admin/logout', function(req, res, next) {
+    req.session.destroy();
+    res.send(new req.Response());
+});
+
+
 
 
 

@@ -68,4 +68,9 @@ router.get('/randomString', function(req, res) {
     res.send(new req.Response(0,random.string(100)));
 });
 
+
+router.get('/session', function(req, res) {
+    res.send(req.session);
+});
+
 module.exports = router;
