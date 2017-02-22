@@ -1,9 +1,9 @@
 var mysql = require('mysql');
 var pool = mysql.createPool({
-    host: '101.200.152.168',
+    host: '192.168.0.0',
     user: 'root',
-    password: 'm2XBfsjn',
-    database: 'cyb_forum',
+    password: '',
+    database: 'kmall',
     port: 3306
 });
 

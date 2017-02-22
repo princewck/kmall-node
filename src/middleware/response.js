@@ -7,6 +7,18 @@ router.use('/', function(req, res, next) {
         this.message = message || "";
         this.data = data || null;
     }
+
+    req.Response.prototype = {
+        setCode: function(code) {
+            this.code = code;
+        },
+        setMessage: function(message) {
+            this.message = message;
+        },
+        setData: function(data) {
+            this.data = data;
+        }
+    }
     next();
 });
 module.exports = router;

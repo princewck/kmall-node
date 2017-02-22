@@ -3,13 +3,14 @@ var router = express.Router();
 var crypto = require('crypto');
 var random = require('../common/random');
 var uuid = require('uuid');
+var moment = require('moment');
 
 router.get('/admin/sysuser', function(req, res) {
     var SUser = req.models.SystemUsers;
     SUser.find({status: 1}, function(err, data) {
         if (err) {
             console.log(err);
-            res.send(new req.Response(-1, null, '操作失败'));
+            return res.send(new req.Response(-1, null, '操作失败'));
         }
         res.send(new req.Response(0, data.map(function(d) {
             return d.getInfo();
@@ -46,6 +47,46 @@ router.all('/admin/sysuser/add', function(req, res) {
     });      
 });
 
+router.post('/admin/sysuser/update', function(req, res) {
+    var params = req.body;
+    var SystemUsers = req.models.SystemUsers;
+    var response = new req.Response();
+    if (!params.id) {
+        response.setCode(-1);
+        response.setMessage('用户id不存在');
+        return res.send(response);
+    }
+    SystemUsers.get(params.id, function(err, user) {
+        if (err || !user.id) {
+            response.setCode(-2);
+            response.setMessage('用户不存在');
+            return res.send(response);
+        }
+        if (params.mail) user.mail = params.mail;
+        if (params.username) user.username = params.username;
+        if (params.nick) user.nick = params.nick;
+        if (params.birthday) user.birthday = params.birthday;
+        if (params.avatar) user.avatar = params.avatar;
+        if (params.birthday) user.birthday = moment(params.birthday).format('YYYY-MM-DD HH:mm:ss');
+        if (params.password) {
+            var md5 = crypto.createHash('md5');
+            params.salt = random.string(8);
+            params.password = md5.update(params.password + params.salt).digest('hex');       
+        }
+        if ([0, 1].indexOf(Number(params.status))) params.status = Number(params.status);
+        user.save(function(err) {
+            if (err) {
+                response.setCode(-3);
+                response.setMessage('更新用户失败');
+                return res.send(response);                
+            }
+            response.setMessage('更新成功！');
+            return res.send(response);
+        });
+    });
+
+});
+
 router.post('/login', function(req, res) {  
     var username = req.body.username;
     var password = req.body.password;
@@ -65,7 +106,7 @@ router.post('/login', function(req, res) {
                 req.session.user = users[0];       
                 users[0].save(function(err) {
                     if (err) return res.send(new Response(-4, null, '登录失败！'));
-                    return res.send(new Response(0, users[0], '登录成功！'));
+                    return res.send(new Response(0, users[0].getInfo(), '登录成功！'));
                 });                         
             });
         } else {

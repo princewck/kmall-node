@@ -27,10 +27,10 @@ app.set('view engine', 'plain');
 
 app.set('trust proxy', 1);
 var sessionOptions = {
-    host: '101.200.152.168',
+    host: 'localhost',
     port: 3306,
     user: 'root',
-    password: 'm2XBfsjn',
+    password: '',
     database: 'kmall_session'
 };
 var sessionStore = new MySQLStore(sessionOptions);
@@ -45,7 +45,7 @@ app.use(session({
   cookie: { 
     // http协议设为true会出现每次请求都生成不同sessionID的问题
     secure: false,
-    maxAge: 60000,
+    maxAge: 1800000,//session有效期为半小时
     httpOnly: false 
   }
 }));
@@ -59,7 +59,7 @@ app.use(middleware.prototype);
 //自定义的中间件
 app.use(middleware.api);
 app.use(middleware.response);
-app.use('/admin', middleware.authenticate);
+app.use('/admin', middleware.authenticate);//用户认证
 //自定义的路由
 app.use('/', routes.admin, routes.test, routes.user);
 

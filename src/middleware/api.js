@@ -5,7 +5,7 @@ var fs = require('fs');
 var path = require('path');
 
 //ORM支持
-app.use(orm.express("mysql://root:m2XBfsjn@101.200.152.168/sandbox_bmw2?pool=true", {
+app.use(orm.express("mysql://root:@localhost/kmall?pool=true", {
     define: function (db, models) {
         var dir = path.resolve(__dirname, '../models');
         fs.readdir(dir, function(err, files) {
