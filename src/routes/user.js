@@ -6,7 +6,7 @@ var uuid = require('uuid');
 var moment = require('moment');
 
 router.get('/admin/sysuser', function(req, res) {
-    var SUser = req.models.SystemUsers;
+    var SUser = req.models.systemusers;
     SUser.find({status: 1}, function(err, data) {
         if (err) {
             console.log(err);
@@ -18,9 +18,9 @@ router.get('/admin/sysuser', function(req, res) {
     });
 });
 
-router.all('/admin/sysuser/add', function(req, res) {
+router.post('/admin/sysuser', function(req, res) {
     var username = req.body.username;
-    var SUser = req.models.SystemUsers;  
+    var SUser = req.models.systemusers;  
     var md5 = crypto.createHash('md5');
     var params = req.body;
     params.status = params.status || 1;
@@ -47,16 +47,16 @@ router.all('/admin/sysuser/add', function(req, res) {
     });      
 });
 
-router.post('/admin/sysuser/update', function(req, res) {
+router.post('/admin/sysuser/:id', function(req, res) {
     var params = req.body;
-    var SystemUsers = req.models.SystemUsers;
+    var systemusers = req.models.systemusers;
     var response = new req.Response();
     if (!params.id) {
         response.setCode(-1);
         response.setMessage('用户id不存在');
         return res.send(response);
     }
-    SystemUsers.get(params.id, function(err, user) {
+    systemusers.get(params.id, function(err, user) {
         if (err || !user.id) {
             response.setCode(-2);
             response.setMessage('用户不存在');
@@ -91,7 +91,7 @@ router.post('/login', function(req, res) {
     var username = req.body.username;
     var password = req.body.password;
     var Response = req.Response;
-    var SUser = req.models.SystemUsers;
+    var SUser = req.models.systemusers;
     var md5 = crypto.createHash('md5');
     if(!username || !password) return res.send(new Response(-1, null, '登录参数不合法!!'));
     SUser.find({username: username}, function(err, users) {
