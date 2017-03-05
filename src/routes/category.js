@@ -7,7 +7,7 @@ router.route('/admin/categories')
         let Response = req.Response;
         let Category = req.models.category;
         let resp = new Response();
-        Category.find({status: true}, function(err, categories) {
+        Category.all(function(err, categories) {
             if (err) return resp.setCode(-1),res.send(resp);
             return resp.setData(categories),res.send(resp);
         });
@@ -89,7 +89,7 @@ router.route('/admin/categories')
             let Category = req.models.category;
             if (isNaN(req.params.categoryId)) return res.send(new Response(-1, null, '参数缺失！'));
             Category.get(req.params.categoryId, function(err, cate) {
-                if (err) return res.send(-2, null, err.message);
+                if (err) return res.send(new Response(-2, null, err.message));
                 cate.remove(function(err) {
                     if (err) return res.send(new Response(-2, null, err.message));
                     return res.send(new Response());

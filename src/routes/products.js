@@ -1,5 +1,7 @@
 var express = require('express');
 var router = express.Router();
+var xlsx = require('xlsx');
+var Busboy = require('busboy');
 
 router.route('/admin/products')
     .get(function(req, res) {
@@ -93,6 +95,31 @@ router.post('/admin/product/:productId/del', function(req, res) {
             return res.send(new Response());
         });
     });
+});
+
+//上传xlsx文件
+router.post('/admin/products/xlsx', function(req, res) {
+    let busboy = new Busboy({
+            headers: req.headers,
+            limits: {
+                files: 1,
+                fileSize: 50000000
+            }
+        });
+    busboy.on('file', function(fieldName, file, filename, encoding, mimetype){
+        file.on('large', function() {
+            return res.json(Result.FAIL('To large'));
+        });
+        file.on('data', function(data) {
+            console.log('File [' + fieldname + '] got ' + data.length + ' bytes');
+            var workbook = XLSX.read(data);
+            var sheetNames = workbook.SheetNames;
+            var worksheet = workbook.Sheets[sheetNames[0]];// 获取excel的第一个表格
+            var ref = worksheet['!ref'];
+            res.send(sheetNames);
+        });
+    });    
+
 });
 
 module.exports = router;

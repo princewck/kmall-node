@@ -65,7 +65,8 @@ app.use('/admin', middleware.authenticate);//用户认证
     user: require('./routes/user'),
     category: require('./routes/category'),
     brand: require('./routes/brand'),
-    products: require('./routes/products')
+    products: require('./routes/products'),
+    oss: require('./routes/oss')
   }
   var routesArr = [];
   for (k in routes) routesArr.push(routes[k]);

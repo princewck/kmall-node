@@ -3,7 +3,8 @@ function Category(db, cb) {
        id: Number,
        name: String,
        description: String,
-       sort: Number 
+       sort: Number,
+       status: Boolean
     });
 }
 module.exports = Category;
