@@ -1,7 +1,12 @@
 var express = require('express');
 var router = express.Router();
-var xlsx = require('xlsx');
-var Busboy = require('busboy');
+var xlsx = require('node-xlsx');
+var Pluploader = require('node-pluploader');
+var path = require('path');
+var multiparty = require('multiparty');
+
+var productImportService = require('../service/productImportService');
+var xlsParser = productImportService.parseXLS;
 
 router.route('/admin/products')
     .get(function(req, res) {
@@ -98,28 +103,27 @@ router.post('/admin/product/:productId/del', function(req, res) {
 });
 
 //上传xlsx文件
-router.post('/admin/products/xlsx', function(req, res) {
-    let busboy = new Busboy({
-            headers: req.headers,
-            limits: {
-                files: 1,
-                fileSize: 50000000
-            }
-        });
-    busboy.on('file', function(fieldName, file, filename, encoding, mimetype){
-        file.on('large', function() {
-            return res.json(Result.FAIL('To large'));
-        });
-        file.on('data', function(data) {
-            console.log('File [' + fieldname + '] got ' + data.length + ' bytes');
-            var workbook = XLSX.read(data);
-            var sheetNames = workbook.SheetNames;
-            var worksheet = workbook.Sheets[sheetNames[0]];// 获取excel的第一个表格
-            var ref = worksheet['!ref'];
-            res.send(sheetNames);
-        });
-    });    
-
+router.post('/import/products/xlsx', function(req, res) {
+    var form = new multiparty.Form();
+    var Product = req.models.product;
+    form.parse(req, function(err, fields, files) {
+        if (files.file.length) {
+            var cid = fields['cid'] && fields['cid'].length ? fields['cid'][0] : 0;
+            var brand_id = fields['brand_id'] && fields['brand_id'].length ? fields['brand_id'][0] : 0;
+            var file = files.file[0];
+            if (!cid) return res.send(new req.Response(-2, null, '分类没有指定'));
+            const workSheetsFromFile = xlsx.parse(file.path);
+            var sheetItems = workSheetsFromFile[0].data;
+            var productList = (xlsParser(sheetItems, cid, brand_id));
+            productList.shift();//去除第一行表头
+            Product.create(productList, function(err, items) {
+                if (err) return res.send(new req.Response(-3, null, err.message));
+                return res.send(new req.Response(0, items));
+            });
+        } else {
+            return res.send(new req.Response(-1, null, '文件有误'));
+        }
+    });
 });
 
 module.exports = router;

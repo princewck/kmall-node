@@ -22,6 +22,8 @@
     "moment": "^2.17.1",
     "morgan": "^1.7.0",
     "mysql": "^2.13.0",
+    "node-pluploader": "0.0.6",
+    "node-xlsx": "^0.7.4",
     "nodemailer": "^2.7.2",
     "orm": "^3.2.3",
     "uuid": "^3.0.1",
