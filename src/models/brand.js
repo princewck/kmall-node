@@ -10,5 +10,5 @@ function Brands(db, cb) {
     });
 }
 
-Brands.hasMany = ['categories', 'category', {}, {reverse: 'brands', key: true, autoFetch: false}];
+Brands.hasMany = ['categories', 'category', {}, {reverse: 'brands', key: true, autoFetch: true}];
 module.exports = Brands;

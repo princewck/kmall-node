@@ -4,19 +4,19 @@ var orm = require('orm');
 
 //获取所有品牌
 router.route('/admin/brands')
-    .get(function(req, res) {
+    .get(function (req, res) {
         var Brand = req.models.brand;
-        Brand.find({status: true}, function(err, brands) {
+        Brand.find({ status: true }, function (err, brands) {
             if (err) res.send(new req.Response(-1, null, '获取数据失败'));
             res.send(new req.Response(0, brands));
         });
     })
-    .post(function(req, res) {
+    .post(function (req, res) {
         var Brand = req.models.brand;
         brands = req.body.brands;
-        if (!brands instanceof Array) return res.send(new req.Response(-2, null,'参数错误，expected:品牌数组'));
+        if (!brands instanceof Array) return res.send(new req.Response(-2, null, '参数错误，expected:品牌数组'));
         var hasInvalid = false;
-        brands = brands.map(function(brand) {
+        brands = brands.map(function (brand) {
             if (!brand.name) hasInvalid = true;
             return {
                 name: brand.name,
@@ -26,14 +26,14 @@ router.route('/admin/brands')
             }
         });
         if (hasInvalid) return res.send(new req.Response(-3, null, '参数不正确，请检查是否存在参数不合法的项目'));
-        Brand.create(brands, function(err, items) {
+        Brand.create(brands, function (err, items) {
             if (err) return res.send(new req.Response(-1, null, err.message));
-            return res.send(new req.Response(0 , '创建成功'));
+            return res.send(new req.Response(0, '创建成功'));
         });
     });
 
 //新建品牌
-router.post('/admin/brand', function(req, res) {
+router.post('/admin/brand', function (req, res) {
     var Brand = req.models.brand;
     var param = req.body;
     var brand = {
@@ -44,7 +44,7 @@ router.post('/admin/brand', function(req, res) {
         sort: param.sort || 0
     }
     if (!brand.name) return res.send(new req.Response(-2, null, '参数不合法'));
-    Brand.create(brand, function(err, items) {
+    Brand.create(brand, function (err, items) {
         if (err) return res.send(new res.Response(-1, null, '新建品牌失败！'));
         return res.send(new req.Response(0, items));
     });
@@ -52,56 +52,124 @@ router.post('/admin/brand', function(req, res) {
 
 //修改品牌
 router.route('/admin/brand/:brandId')
-    .post(function(req, res) {
+    .post(function (req, res) {
         var Brand = req.models.brand;
         const brandId = req.params.brandId;
-        if(!brandId) res.send(new req.Response(-1, null, '品牌id缺失，无法更新！'));
-        Brand.get(brandId, function(err, brand) {
-            if (!brand) return res.send(new req.Response(-2, null, '用户不存在'));
+        if (!brandId) res.send(new req.Response(-1, null, '品牌id缺失，无法更新！'));
+        Brand.get(brandId, function (err, brand) {
+            if (!brand) return res.send(new req.Response(-2, null, '品牌不存在'));
             for (k in req.body) {
                 if (brand.hasOwnProperty(k) && k != 'id') {
                     brand[k] = req.body[k];
                 }
             }
-            brand.save(function(err) {
-                if (err) return res.send(new req.Response(-2, null, '更新失败'));
+            brand.save(function (err) {
+                if (err) return res.send(new req.Response(-3, null, '更新失败'));
                 return res.send(new req.Response());
             });
         })
     })
-    .get(function(req, res) {
+    .get(function (req, res) {
         const brandName = req.body.name;
         const Brand = req.models.brand;
-        Brand.get(req.params.brandId, function(err, brand) {
+        Brand.get(req.params.brandId, function (err, brand) {
             if (err) return res.send(new req.Response(-1, null, err.message));
             return res.send(new req.Response(0, brand));
-        });         
+        });
     });
 
 
 //删除品牌
-router.post('/admin/brand/:brandId/delete', function(req, res) {
+router.post('/admin/brand/:brandId/delete', function (req, res) {
     const Brand = req.models.brand;
     const brandId = req.params.brandId;
     if (!brandId) return res.send(new req.Response(-1, null, '要删除的品牌未指定'));
-    Brand.get(brandId, function(err, brand) {
+    Brand.get(brandId, function (err, brand) {
         if (err) return res.send(new req.Response(-2, null, err.message));
-        brand.remove(function(err) {
+        brand.remove(function (err) {
             if (err) return res.send(new req.Response(-3, null, err.message));
             return res.send(new req.Response());
-        }); 
+        });
     });
 });
 
 //查找品牌 @params {string} brandName
-router.post('/admin/brands/find', function(req, res) {
+router.post('/admin/brands/find', function (req, res) {
     const brandName = req.body.name;
     const Brand = req.models.brand;
     const Response = req.Response;
-    Brand.find({name: orm.like('%' + brandName + '%')}, function(err, brands) {
+    Brand.find({ name: orm.like('%' + brandName + '%') }, function (err, brands) {
         if (err) return res.send(new Response(-1, null, err.message));
         return res.send(new Response(0, brands));
     });
+});
+
+/**
+ * 根据分类获取品牌
+ */
+router.route('/admin/category/:categoryId/brands')
+    .get(function (req, res) {
+        const categoryId = req.params.categoryId;
+        const Response = req.Response;
+        const Category = req.models.category;
+        if (!categoryId || isNaN(categoryId)) return new Response(-1, null, '参数错误');
+        Category.get(categoryId, function (err, category) {
+            if (err) return res.send(new Response(-2, null, err));
+            category.getBrands(function (err, brands) {
+                if (err) return res.send(new Response(-3, null, err));
+                return res.send(brands);
+            });
+        });
+    })
+    .post(function (req, res) {
+        /**
+         * 为一个分类设置品牌
+         */
+        const Category = req.models.category;
+        const Brand = req.models.brand;
+        const categoryId = req.params.categoryId;
+        const Response = req.Response;
+        if (!categoryId || isNaN(categoryId)) return new Response(-1, null, '参数错误, {brandIds:[Integer brandId,...]}');
+        var brandIds = req.body.brandIds;
+        if (!brandIds || isNaN(categoryId) || !(brandIds instanceof Array) || !brandIds.length || brandIds.some(function (id) {
+            return isNaN(id);
+        })) {
+            return res.send(new Response(-3, null, '参数不合法'));
+        }
+        Category.get(categoryId, function (err, category) {
+            if (err) return res.send(new Response(-4, null, err));
+            Brand.find({ status: true }).where('id in (' + brandIds.join(',') + ')').all(function (err, brands) {
+                if (err) return res.send(new Response(-5, null, err));
+                category.setBrands(brands, function (err) {
+                    if (err) return res.send(new Response(-6, null, err));
+                    return res.send(new Response());
+                });
+            });
+        });
+    });
+
+router.post('/admin/brand/:brandId/categories', function (req, res) {
+    /**
+     * 为一个品牌设置分类
+     */
+    const Category = req.models.category;
+    const Brand = req.models.brand;
+    const Response = req.Response;
+    const brandId = req.params.brandId;
+    const categoryIds = req.body.categories;
+    if (isNaN(brandId) || !brandId || !(categoryIds instanceof Array) || categoryIds.some(function (id) { return !id || isNaN(id) })) {
+        return res.send(new req.Response(-1, null, '参数错误'));
+    }
+    Brand.get(brandId, function (err, brand) {
+        if (err) return res.send(new Response(-2, null, err));
+        Category.find({ status: true }).where('id in (' + categoryIds.join(',') + ')').all(function (err, categories) {
+            if (err) return res.send(new Response(-3, null, err));
+            brand.setCategories(categories, function (err) {
+                if (err) return res.send(new Response(-4, null, err));
+                return res.send(new Response(0, null, 'success'));
+            });
+        });
+    })
 });
 
 module.exports = router;

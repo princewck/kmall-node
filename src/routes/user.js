@@ -103,6 +103,7 @@ router.post('/login', function(req, res) {
             req.session.regenerate(function(err) {
                 if (err) console.log('session regenerate failed');
                 users[0].token = req.sessionID;
+                users[0].token_expired = new Date(new Date().valueOf() + 1800000);
                 req.session.user = users[0];       
                 users[0].save(function(err) {
                     if (err) return res.send(new Response(-4, null, '登录失败！'));

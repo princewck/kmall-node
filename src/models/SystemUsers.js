@@ -10,7 +10,8 @@ function SystemUser(db, cb) {
         token: String,
         status: Number,
         salt: String,
-        creation_date: Date
+        creation_date: Date,
+        token_expired: Date
     }, {
         methods: {
             getInfo: function() {
@@ -22,7 +23,8 @@ function SystemUser(db, cb) {
                     mail: this.mail,
                     birthday: this.birthday,
                     token: this.token,
-                    status: this.status
+                    status: this.status,
+                    token_expired: this.token_expired
                 }
             }
         }

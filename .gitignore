@@ -1,2 +1,4 @@
 node_modules
 .config.json
+./src/.config.js
+src/.config.js

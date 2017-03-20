@@ -57,6 +57,21 @@ router.route('/admin/products')
         });
     });
 
+//根据分类获取商品
+router.get('/admin/category/:categoryId/products', function(req, res) {
+    let Response = req.Response;
+    let Category = req.models.category;
+    let categoryId = req.params.categoryId;
+    let Product = req.models.product;
+    Category.get(categoryId, function(err, category) {
+        if (err) return res.send(new Response(-1, null, err));
+        Product.find({cid: category.id}, function(err, products) {
+            if (err) return res.send(new Response(-2, null, err));
+            return res.send(new Response(0, products, 'success!'));
+        })
+    });
+});
+
 router.all('/admin/product/:productId', function(req, res, next) {
     let Response = req.Response;
     if (!Number(req.params.productId)) return res.send(new Response(-1, null, '缺少参数！'));

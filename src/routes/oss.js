@@ -3,12 +3,10 @@ var router = express.Router();
 var OSS = require('ali-oss');
 var STS = OSS.STS;
 var co = require('co');
+var configurations = require('../.config');
 
 //此处只能使用子账号，使用主账号会报错
-var sts = new STS({
-  accessKeyId: 'LTAINIZKpSOAqocZ',
-  accessKeySecret: 'lM7MZyLbwGkDomrm16eSglJ5VpBRwZ'
-});
+var sts = new STS(configurations.ossAccount);
 
 var policy = {
   "Statement": [
@@ -21,7 +19,7 @@ var policy = {
   "Version": "1"
 };
 
-var roleArn = 'acs:ram::1646881312224974:role/kmall-admin';
+var roleArn = configurations.ossRoleArn;
 
 //获取一个零时的授权对象，有效时间15分钟
 router.get('/admin/oss/sts', function(req, res) {
