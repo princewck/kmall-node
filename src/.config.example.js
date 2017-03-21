@@ -7,5 +7,6 @@ module.exports = {
         accessKeySecret: '<oss accessKeySecret>'
     },
     ossRoleArn: '<oss role arn 即要扮演的角色>',
+    mysqlConfig: "mysql://root:@localhost/kmall?pool=true"
     
 }

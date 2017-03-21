@@ -3,9 +3,10 @@ var app = express();
 var orm = require('orm');
 var fs = require('fs');
 var path = require('path');
+var configuration = require('../.config');
 
 //ORM支持
-app.use(orm.express("mysql://root:@localhost/kmall?pool=true", {
+app.use(orm.express(configuration.mysqlConfig, {
     define: function (db, models) {
         var dir = path.resolve(__dirname, '../models');
         fs.readdir(dir, function(err, files) {
