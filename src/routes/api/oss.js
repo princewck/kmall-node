@@ -3,7 +3,7 @@ var router = express.Router();
 var OSS = require('ali-oss');
 var STS = OSS.STS;
 var co = require('co');
-var configurations = require('../.config');
+var configurations = require('../../.config');
 
 //此处只能使用子账号，使用主账号会报错
 var sts = new STS(configurations.ossAccount);

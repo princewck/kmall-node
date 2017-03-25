@@ -60,13 +60,14 @@ app.use('/admin', middleware.authenticate);//用户认证
 (function() {
   //路由列表
   var routes = {
-    admin: require('./routes/admin'),
-    test:  require('./routes/test'),
-    user: require('./routes/user'),
-    category: require('./routes/category'),
-    brand: require('./routes/brand'),
-    products: require('./routes/products'),
-    oss: require('./routes/oss')
+    admin: require('./routes/api/admin'),
+    test:  require('./routes/api/test'),
+    user: require('./routes/api/user'),
+    category: require('./routes/api/category'),
+    brand: require('./routes/api/brand'),
+    products: require('./routes/api/products'),
+    oss: require('./routes/api/oss'),
+    configs: require('./routes/api/configs'),
   }
   var routesArr = [];
   for (k in routes) routesArr.push(routes[k]);

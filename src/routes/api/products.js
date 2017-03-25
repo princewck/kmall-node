@@ -5,7 +5,7 @@ var Pluploader = require('node-pluploader');
 var path = require('path');
 var multiparty = require('multiparty');
 
-var productImportService = require('../service/productImportService');
+var productImportService = require('../../service/productImportService');
 var xlsParser = productImportService.parseXLS;
 
 router.route('/admin/products')

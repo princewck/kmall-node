@@ -1,13 +1,13 @@
 var express = require('express'),
     router = express.Router(),
-    mailler = require('../service/mailService'),
+    mailler = require('../../service/mailService'),
     mail = new mailler(),
     jwt = require('jsonwebtoken'),
     uuid = require('uuid'),
     fs = require('fs'),
     path = require('path'),
     crypto = require('crypto'),
-    random = require('../common/random');
+    random = require('../../common/random.js');
 
 router.post('/mail/send', function(req, res) {
     mail.send(null, '1046956843@qq.com', '测试邮件', null, '<h1>测试邮件 标题</h1>', function(info) {

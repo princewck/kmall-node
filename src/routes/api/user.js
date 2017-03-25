@@ -1,7 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var crypto = require('crypto');
-var random = require('../common/random');
+var random = require('../../common/random');
 var uuid = require('uuid');
 var moment = require('moment');
 
