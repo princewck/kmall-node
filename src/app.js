@@ -68,6 +68,7 @@ app.use('/admin', middleware.authenticate);//用户认证
     products: require('./routes/api/products'),
     oss: require('./routes/api/oss'),
     configs: require('./routes/api/configs'),
+    alimama: require('./routes/api/alimama')
   }
   var routesArr = [];
   for (k in routes) routesArr.push(routes[k]);

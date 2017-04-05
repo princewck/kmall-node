@@ -42,6 +42,42 @@ router.route('/admin/navbars')
     });
 
 /**
+ * 首页主导航链接
+ */
+router.route('/web/navbars')
+    .get(function(req, res) {
+        const CategoryGroup = req.models.category_group;
+        const module = 'index';
+        const code = 'navbar';
+        if (!module || !code)
+            return res.send(new Response(-1, null, '参数错误'));
+        var Configuration = req.models.configurations;
+        var Response = req.Response;
+        Configuration.find({
+            module: module,
+            code: code
+        }, function(err, configSets) {
+            if (err) return res.send(new Response(-1, null, err));
+            if (!configSets.length)  return res.send(new Response(-2, null, '配置不存在，请完善相关基础配置项'));
+            var navs = JSON.parse(configSets[0]['value']);
+            CategoryGroup.find({on_navbar: true}, function(err, groups) {
+                if(!err) {
+                    navs.push.apply(navs, groups.map(function(g) {
+                        return {
+                            newTab: true,
+                            sort: 10,
+                            text: g.name,
+                            url: '/#!/products/'+ g.id +'///'
+                        }
+                    }));
+                }
+                return res.send(new Response(0, navs));
+            });
+        }); 
+    })
+
+
+/**
  * 活动专区
  */
 router.route('/admin/blockGroups')
@@ -79,18 +115,19 @@ function setConfig(req, res, config) {
     });
 }
 
-function getConfig(req, res, config) {
+function getConfig(req, res, config, cb) {
     if (!config.module || !config.code) 
         return res.send(new Response(-1, null, '参数错误'));
     var Configuration = req.models.configurations;
     var Response = req.Response;
+    cb = cb instanceof Function ? cb : function(d) {return d};
     Configuration.find({
         module: config.module,
         code: config.code
     }, function(err, configSets) {
         if (err) return res.send(new Response(-1, null, err));
         if (!configSets.length)  return res.send(new Response(-2, null, '配置不存在，请完善相关基础配置项'));
-        return res.send(new Response(0, JSON.parse(configSets[0]['value'])));
+        return res.send(new Response(0, cb(JSON.parse(configSets[0]['value']))));
     });    
 }
 

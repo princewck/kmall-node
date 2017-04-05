@@ -4,6 +4,7 @@ var xlsx = require('node-xlsx');
 var Pluploader = require('node-pluploader');
 var path = require('path');
 var multiparty = require('multiparty');
+var orm = require('orm');
 
 var productImportService = require('../../service/productImportService');
 var xlsParser = productImportService.parseXLS;
@@ -139,6 +140,95 @@ router.post('/import/products/xlsx', function(req, res) {
             return res.send(new req.Response(-1, null, '文件有误'));
         }
     });
+});
+
+router.get('/web/brand/:brandId/products', function(req, res) {
+    let Response = req.Response;
+    let Product = req.models.product; 
+    let brandId = req.params.brandId;
+    Product.find({brand_id: brandId, status: true}, function(err, products) {
+        if (err) return res.send(new Response(-1, null , err));
+        return res.send(new Response(0, products));
+    });
+});
+
+router.post('/web/products/query', function(req, res) {
+    var hasCoupon = req.body.hasCoupon;//搜素红包时用这个
+    var groupId = req.body.groupId;
+    var keyword = req.body.kwd;
+    var brandIds = req.body.brandIds instanceof Array ? req.body.brandIds : null;
+    var categoryIds = req.body.categoryIds instanceof Array ? req.body.categoryIds: null;
+    var Product = req.models.product;
+    var CategoryGroup = req.models.category_group;
+    var query = {};
+    var Response = req.Response;    
+    brandIds && (brandIds = brandIds.filter(function(brandId) {
+        return Number(brandId) > 0;
+    }));
+    categoryIds && (categoryIds = categoryIds.filter(function(categoryId) {
+        return Number(categoryId) > 0;
+    }));
+    //获取可用的二级分类ID
+    var availableCategories = null;
+    var ceilPrice = null;
+    var floorPrice = null;
+    if (brandIds && brandIds.length) query.brand_id = brandIds;
+    if (Number(groupId) > 0) {
+        CategoryGroup.get(groupId, function(err, categoryGroup) {
+            if (err) {
+                availableCategories = [];//查不到记录
+                doQuery(query);
+            } else {
+                ceilPrice = categoryGroup.ceil_price;
+                floorPrice = categoryGroup.floor_price;
+                availableCategories = categoryGroup.categories.map(function(c) {
+                    return c.id;
+                });
+                doQuery(query, floorPrice, ceilPrice);
+            }
+        });
+    } else {
+        doQuery(query);
+    }
+
+    function doQuery(query, floorPrice, ceilPrice) {
+        var queryCategories = null;
+        if (categoryIds.length && availableCategories) {
+            queryCategories = categoryIds.filter(function(id) {
+                return availableCategories.indexOf(Number(id)) >= 0;
+            });
+        } else if (categoryIds.length && !availableCategories) {
+            //未指定一级分类
+            queryCategories = categoryIds;
+        } else if ((!categoryIds || !categoryIds.length) && availableCategories) {
+            //未指定二级分类
+            queryCategories = availableCategories;
+        } else {
+            //全没指定
+        }
+        if (floorPrice > 0) {
+            query.price = orm.gte(floorPrice);
+        }
+        if (ceilPrice> 0 ) {
+            query.price = orm.lte(ceilPrice);
+        }
+        if (hasCoupon) {
+            query.coupon_total_amount = orm.gt(0);
+            query.coupon_end = orm.gt(new Date());
+        }
+        if (queryCategories) query.cid = queryCategories;
+        if (!keyword) {
+            Product.find(query, function(err, products) {
+                if (err) return res.send(new Response(-1, null, err));
+                return res.send(new Response(0, products, 'success'));
+            });
+        } else {
+            Product.find(query).where('product_name like ?', ['%' + keyword + '%']).all(function(err, products) {
+                if (err) return res.send(new Response(-2, null, err));
+                return res.send(new Response(0, products, 'success'));
+            });
+        }  
+    }
 });
 
 module.exports = router;

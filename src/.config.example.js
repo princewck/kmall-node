@@ -7,6 +7,10 @@ module.exports = {
         accessKeySecret: '<oss accessKeySecret>'
     },
     ossRoleArn: '<oss role arn 即要扮演的角色>',
-    mysqlConfig: "mysql://root:@localhost/kmall?pool=true"
-    
+    mysqlConfig: "mysql://root:@localhost/kmall?pool=true",
+    alimamaConfig: {
+        'appkey': '123456',
+        'appsecret': 'xxxx',
+        'REST_URL': 'http://gw.api.taobao.com/router/rest'
+    }    
 }

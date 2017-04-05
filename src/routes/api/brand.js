@@ -6,7 +6,7 @@ var orm = require('orm');
 router.route('/admin/brands')
     .get(function (req, res) {
         var Brand = req.models.brand;
-        Brand.find({ status: true }, function (err, brands) {
+        Brand.find({}, function (err, brands) {
             if (err) res.send(new req.Response(-1, null, '获取数据失败'));
             res.send(new req.Response(0, brands));
         });
@@ -31,6 +31,16 @@ router.route('/admin/brands')
             return res.send(new req.Response(0, '创建成功'));
         });
     });
+
+//获取所有品牌
+router.route('/web/brands')
+    .get(function (req, res) {
+        var Brand = req.models.brand;
+        Brand.find({ status: true }, function (err, brands) {
+            if (err) res.send(new req.Response(-1, null, '获取数据失败'));
+            res.send(new req.Response(0, brands));
+        });
+    }); 
 
 //新建品牌
 router.post('/admin/brand', function (req, res) {
@@ -78,6 +88,14 @@ router.route('/admin/brand/:brandId')
         });
     });
 
+router.get('/web/brand/:brandId', function (req, res) {
+        const brandName = req.body.name;
+        const Brand = req.models.brand;
+        Brand.get(req.params.brandId, function (err, brand) {
+            if (err) return res.send(new req.Response(-1, null, err.message));
+            return res.send(new req.Response(0, brand));
+        });
+    });
 
 //删除品牌
 router.post('/admin/brand/:brandId/delete', function (req, res) {
@@ -103,6 +121,41 @@ router.post('/admin/brands/find', function (req, res) {
         return res.send(new Response(0, brands));
     });
 });
+
+//根据一级分类和二级分类过滤品牌
+router.route('/web/categoryGroup/:groupId/brands')
+    .get(function (req, res) {
+        const groupId = req.params.groupId;
+        const Response = req.Response;
+        const Category = req.models.category;
+        const Brands = req.models.brands;
+        const categoryGroup = req.models.category_group;
+        const categoryIds = req.body.categoryIds;
+        if (!groupId || isNaN(groupId)) return new Response(-1, null, '参数错误');
+        categoryGroup.get(groupId, function (err, group) {
+            if (err) return res.send(new Response(-2, null, err));
+            var categories = group.categories;
+            if (categoryIds && categoryIds.length) {
+                categories = categories.filter(function(c) {
+                    return categoryIds.indexOf(c.id) >= 0;
+                });
+            }
+            Category.find({id: categories.map((c)=>(c.id))}, function(err, categories) {
+                if (err) return res.send(new Response(-3, null, err));
+                var brands = [];
+                var map = {};
+                categories.forEach(function(c) {
+                    c.brands.forEach(function(b) {
+                        if (!map.hasOwnProperty(b.id)) {
+                            brands.push(b);
+                            map[b.id] = 1;
+                        }
+                    });
+                });
+                return res.send(new Response(0, brands));
+            });
+        });
+    })
 
 /**
  * 根据分类获取品牌
