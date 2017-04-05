@@ -118,7 +118,7 @@ router.route(/^\/(admin||web)\/categoryGroups$/)
         let CategoryGroup = req.models.category_group;
         CategoryGroup.find({status: true}).all(function (err, categoryGroups) {
             if (err) return res.send(new Response(-1, null, err));
-            return res.send(new Response(0, categoryGroups, 'success!'));
+            else return res.send(new Response(0, categoryGroups, 'success!'));
         });
     })
 
