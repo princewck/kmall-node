@@ -1,10 +1,5 @@
 var mysql = require('mysql');
-var pool = mysql.createPool({
-    host: '192.168.0.0',
-    user: 'root',
-    password: '',
-    database: 'kmall',
-    port: 3306
-});
+var configuration = require('../.config');
+var pool = mysql.createPool(configuration.mysqlPoolConfig);
 
 module.exports = pool;
