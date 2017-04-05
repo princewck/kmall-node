@@ -7,6 +7,7 @@ var app = express();
 var session = require('express-session');
 var MySQLStore = require('express-mysql-session')(session);
 var uuid = require('uuid');
+var configurations = require('./.config.js');
 
 var middleware = {
     api: require('./middleware/api'),
@@ -21,13 +22,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'plain');
 
 app.set('trust proxy', 1);
-var sessionOptions = {
-    host: 'localhost',
-    port: 3306,
-    user: 'root',
-    password: '',
-    database: 'kmall_session'
-};
+var sessionOptions = configurations.sessionMysqlStorageConfig;
 var sessionStore = new MySQLStore(sessionOptions);
 app.use(session({
   genid: function(req) {
