@@ -50,6 +50,7 @@ router.get('/web/xpks/:id/products', function(req, res) {
 router.post('/web/convert', function(req, res) {
     var Response = req.Response;
     var url = req.body.url;
+    console.log(url);
     urlConverter(url).then(function(response) {
         res.send(new Response(0, response));
     }).catch(function(err) {
@@ -75,7 +76,8 @@ router.post('/web/tbk/coupons', function(req, res) {
  */
 function getProducts(q, is_tmall, start_price, end_price, page_size, page_no) {
    return new Promise(function(resolve, reject) {
-        client.execute('taobao.tbk.item.get', {
+        // client.execute('taobao.tbk.item.get', {
+        client.execute('taobao.taobaoke.items.detail.get', {
             'fields':'num_iid,title,pict_url,small_images,reserve_price,zk_final_price,user_type,provcity,item_url,seller_id,volume,nick,click_url',
             'q':'女装',
             // 'cat':'16,18',
@@ -140,7 +142,6 @@ function getProductRepositoryList(page_size, page_no) {
  * @param {*} pageSize 
  * @param {*} pageNo 
  */
-//todo 参数有问题：adzone_id
 function getProductsByRepository(favoritesId, pageSize, pageNo) {
     return new Promise(function(resolve, reject) {
         client.execute('taobao.tbk.uatm.favorites.item.get', {
@@ -150,10 +151,10 @@ function getProductsByRepository(favoritesId, pageSize, pageNo) {
             'unid':'3456',
             'favorites_id': String(favoritesId),
             'page_no': isNaN(pageNo) ? '1' : String(pageNo),
-            'fields':'num_iid,title,pict_url,small_images,reserve_price,zk_final_price,user_type,provcity,item_url,seller_id,volume,nick,shop_title,zk_final_price_wap,event_start_time,event_end_time,tk_rate,status,type'
+            'fields':'click_url,num_iid,title,pict_url,small_images,reserve_price,zk_final_price,user_type,provcity,item_url,seller_id,volume,nick,shop_title,zk_final_price_wap,event_start_time,event_end_time,tk_rate,status,type'
         }, function(error, response) {
-            if (!error) console.log(response);
-            else console.log(error);
+            if (!error) resolve(response);
+            else reject(error);
         });        
     });
 }
@@ -166,7 +167,7 @@ function getProductsByRepository(favoritesId, pageSize, pageNo) {
 function urlConverter(url) {
     return new Promise(function(resolve, reject) {
         client.execute('taobao.tbk.spread.get', {
-            'requests': url
+            'requests': [url]
         }, function(error, response) {
             if (!error) resolve(response);
             else reject(error);
