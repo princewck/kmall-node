@@ -7,7 +7,8 @@ var multiparty = require('multiparty');
 var orm = require('orm');
 
 var productImportService = require('../../service/productImportService');
-var xlsParser = productImportService.parseXLS;
+var xlsParser = productImportService.parseXLSDefault;
+var xlsDailyParser = productImportService.parseXLSDaily;
 
 router.route('/admin/products')
     .get(function(req, res) {
@@ -118,10 +119,33 @@ router.post('/admin/product/:productId/del', function(req, res) {
     });
 });
 
-//上传xlsx文件
-router.post('/import/products/xlsx', function(req, res) {
-    var form = new multiparty.Form();
+//上传xlsx文件(with默认模板转换器)
+router.post('/import/products/xlsx/default', function(req, res) {
+    uploadXls(req, res, xlsParser, 1);
+});
+//上传xlsx文件(with每日精选模板转换器)
+router.post('/import/products/xlsx/daily', function(req, res) {
+    uploadXls(req, res, xlsDailyParser, 2);
+});
+
+
+router.get('/admin/xls/upload/history', function(req, res) {
+    var History = req.models.upload_history;
+    var Response = req.Response;
+    History.all(function(err, history) {
+        if (err) res.send(new Response(-1, null ,err));
+        else return res.send(new Response(0, history));
+    });
+});
+
+
+function uploadXls(req, res, parser, historyType) {
+    var form = new multiparty.Form({
+        autoFiles: true,
+        maxFilesSize: '50m'
+    });
     var Product = req.models.product;
+    var History = req.models.upload_history;
     form.parse(req, function(err, fields, files) {
         if (files.file.length) {
             var cid = fields['cid'] && fields['cid'].length ? fields['cid'][0] : 0;
@@ -130,17 +154,79 @@ router.post('/import/products/xlsx', function(req, res) {
             if (!cid) return res.send(new req.Response(-2, null, '分类没有指定'));
             const workSheetsFromFile = xlsx.parse(file.path);
             var sheetItems = workSheetsFromFile[0].data;
-            var productList = (xlsParser(sheetItems, cid, brand_id));
+            var productList = parser(sheetItems, cid, brand_id);
             productList.shift();//去除第一行表头
-            Product.create(productList, function(err, items) {
-                if (err) return res.send(new req.Response(-3, null, err.message));
-                return res.send(new req.Response(0, items));
+            History.create({
+                start: new Date(),
+                cid: cid,
+                brand_id: brand_id,
+                type: historyType
+            }, function(err, record) {
+                err && console.log(err);
+                if(!err) {
+                    res.send(new req.Response(0, record.id, '数据接收成功，稍后查看请求结果'));
+                    var count = 0;
+                    var duplicateCount = 0;
+                    var errCount = 0;
+                    var promises = productList.map(function(product) {
+                        return new Promise(function(resolve, reject) {
+                            Product.create(product, function(err) {
+                                if(err) {
+                                    /**更新重复数据 */
+                                    if (err.code == 'ER_DUP_ENTRY') {
+                                        duplicateCount ++;
+                                        Product.get(product.product_id, function(err, p) {
+                                            if (!err) {
+                                                for (k in p) {
+                                                    if (product[k] && k!= 'product_id') {
+                                                        p[k] = product[k];
+                                                    }
+                                                }
+                                                p.save(function(err) {
+                                                    if (!err) {
+                                                        count ++;
+                                                        console.log('更新重复产品success')
+                                                        resolve();
+                                                    } else {
+                                                        console.log('更新重复产品失败', err);
+                                                        errCount ++;
+                                                        resolve();
+                                                    }
+                                                });
+                                            } else {
+                                                console.log('获取重复产品但是失败', err);
+                                                errCount ++;
+                                                resolve();
+                                            }
+                                        })
+                                    } else {
+                                        console.log(err);
+                                    }
+                                } else {
+                                    count ++;
+                                    resolve();
+                                }
+                            });
+                        });                       
+                    });
+                    Promise.all(promises).then(function() {
+                        record.count = count;
+                        record.duplicate_count = duplicateCount;
+                        record.err_count = errCount;
+                        record.end = new Date();
+                        record.save(function(err) {
+                            if (err) console.log('上传记录更新失败', err);
+                        });
+                    });                   
+                }
             });
         } else {
             return res.send(new req.Response(-1, null, '文件有误'));
         }
-    });
-});
+    });    
+}
+
+
 
 router.get('/web/brand/:brandId/products', function(req, res) {
     let Response = req.Response;

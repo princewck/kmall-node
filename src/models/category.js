@@ -4,7 +4,8 @@ function Category(db, cb) {
        name: String,
        description: String,
        sort: Number,
-       status: Boolean
+       status: Boolean,
+       keywords: String //根据这个关键字列表自动匹配分类
     });
 }
 module.exports = Category;

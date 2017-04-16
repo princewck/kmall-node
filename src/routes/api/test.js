@@ -73,4 +73,31 @@ router.get('/session', function(req, res) {
     res.send(req.session);
 });
 
+router.get('/testDuplicate/:name', function(req, res) {
+    var Test = req.models.test;
+    Test.create({
+        id: 1,
+        name: req.params.name || 'no name'
+    }, function(err) {
+        if (err) {
+            if (err.code == 'ER_DUP_ENTRY') {
+                Test.get(1, function(err, t){
+                    if (err) res.send(err);
+                    else {
+                        t.name = req.params.name;
+                    }
+                    t.save(function(err) {
+                        if (err) res.send(err);
+                        else return res.send('success');
+                    });
+                })
+            }
+            else {
+               res.send(err); 
+            }
+        }
+        else res.send('success');
+    });
+})
+
 module.exports = router;

@@ -1,13 +1,12 @@
 function Product(db, cb) {
     return db.define('product', {
-        id: Number,
+        product_id: {type: 'number', mapsTo: 'id', index: true},
         cid: Number,
         brand_id: Number,
         status: Boolean,
         description: String,
         creation_date: Date,
 
-        product_id: Number,
         product_name: String,
         product_image: String,
         product_detail_page: String,
