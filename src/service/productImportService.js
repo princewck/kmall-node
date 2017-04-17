@@ -1,3 +1,4 @@
+
 /**
  * 默认模板，可用于选品库导出的xls的导入
  * 将上传得到的数组转换成对象，从数组转换，所以依赖于列的顺序和列数
@@ -43,7 +44,6 @@ function parseProducts(xlsArr, cid, brand_id, description) {
         return p.product_id && p.product_name;
     });
 }
-
 
 /**
  * 导入每日更新的精选优质商品

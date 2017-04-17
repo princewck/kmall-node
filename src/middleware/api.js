@@ -12,6 +12,7 @@ app.use(orm.express(configuration.mysqlConfig, {
         fs.readdir(dir, function(err, files) {
             if (err) return console.log('加载 models/* 模型数据出错');
             var hasManys = {};
+            var hasOne = {};
             files.forEach(function(fileName) {
                 var filePath = dir + '/' + fileName;
                 var model = String(fileName).replace(/\.js/g, '');
@@ -23,6 +24,9 @@ app.use(orm.express(configuration.mysqlConfig, {
                 if (require(filePath).hasMany instanceof Array) {
                     hasManys[model] = require(filePath).hasMany;
                 }
+                if (require(filePath).hasOne instanceof Array) {
+                    hasOne[model] = require(filePath).hasOne;
+                }
             });
 
             for (k in hasManys) {
@@ -30,6 +34,13 @@ app.use(orm.express(configuration.mysqlConfig, {
                 var m = args.splice(1, 1);
                 args.splice(1, 0, models[m]);
                 models[k].hasMany.apply(models[k], args);
+            }
+
+            for (k in hasOne) {
+                var args = hasOne[k];
+                var m = args.splice(1, 1);
+                args.splice(1, 0, models[m]);
+                models[k].hasOne.apply(models[k], args);
             }
             db.sync();
         });
