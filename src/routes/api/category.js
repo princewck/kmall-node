@@ -167,7 +167,8 @@ router.route('/admin/categoryGroup/:id')
             floor_price: req.body.floor_price,
             on_banner: req.body.on_banner,
             on_navbar: req.body.on_navbar,
-            status: req.body.status
+            status: req.body.status,
+            default_category: req.body.default_category
         }
         CategoryGroup.get(groupId, function(err, g) {
              if (err) return res.send(new Response(-2, null. err));
@@ -204,7 +205,8 @@ router.post('/admin/categoryGroup', function (req, res) {
         image: req.body.image,
         sort: req.body.sort,
         description: req.body.description,
-        status: true
+        status: true,
+        default_category: req.body.defaultCategory || null
     };
     if (!group.name) return res.send(new Response(-1, null, '一级分类名不能为空'));
     CategoryGroup.create(group, function (err, group) {

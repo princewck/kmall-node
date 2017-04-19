@@ -8,7 +8,8 @@ function UploadHistory(db, cb) {
         err_count: Number,
         cid: Number,
         brand_id: Number,
-        type: Number //1 选品库， 2每日精选
+        type: Number, //1 选品库， 2每日精选
+        done: {type:'boolean', defaultValue: false}//是否完成
     });
 }
 module.exports = UploadHistory;

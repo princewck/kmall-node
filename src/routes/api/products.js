@@ -214,6 +214,7 @@ function uploadXls(req, res, parser, historyType) {
                         record.duplicate_count = duplicateCount;
                         record.err_count = errCount;
                         record.end = new Date();
+                        record.done = true;
                         record.save(function(err) {
                             if (err) console.log('上传记录更新失败', err);
                         });
