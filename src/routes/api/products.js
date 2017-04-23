@@ -11,21 +11,21 @@ var xlsParser = productImportService.parseXLSDefault;
 var xlsDailyParser = productImportService.parseXLSDaily;
 
 router.route('/admin/products')
-    .get(function(req, res) {
+    .get(function (req, res) {
         let Products = req.models.product;
         let Response = req.Response;
-        Products.find({status: true}, function(err, products) {
+        Products.find({ status: true }, function (err, products) {
             if (err) return res.send(new Response(-1, null, err.message));
             return res.send(new Response(0, products));
         });
     })
-    .post(function(req, res) {
+    .post(function (req, res) {
         let Products = req.models.product;
         let Response = req.Response;
         let params = req.body.products;
         if (!(params instanceof Array)) return res.send(new Response(-1, null, '参数不合法, 需要序列化的json对象, 键为products,值为数组'));
         let existInvalid = false;
-        let products = params.map(function(p) {
+        let products = params.map(function (p) {
             if (!p.name) existInvalid = true;
             return {
                 cid: p.cid || null,
@@ -53,66 +53,66 @@ router.route('/admin/products')
             }
         });
         if (existInvalid) return res.send(new Response(-2, null, '参数错误，存在不合法的项'));
-        Product.create(products, function(err, items) {
+        Product.create(products, function (err, items) {
             if (err) return res.send(new Response(-2, null, err.message));
             return res.send(new Response(0, items));
         });
     });
 
 //根据分类获取商品
-router.get('/admin/category/:categoryId/products', function(req, res) {
+router.get('/admin/category/:categoryId/products', function (req, res) {
     let Response = req.Response;
     let Category = req.models.category;
     let categoryId = req.params.categoryId;
     let Product = req.models.product;
-    Category.get(categoryId, function(err, category) {
+    Category.get(categoryId, function (err, category) {
         if (err) return res.send(new Response(-1, null, err));
-        Product.find({cid: category.id}, function(err, products) {
+        Product.find({ cid: category.id }, function (err, products) {
             if (err) return res.send(new Response(-2, null, err));
             return res.send(new Response(0, products, 'success!'));
         })
     });
 });
 
-router.all('/admin/product/:productId', function(req, res, next) {
+router.all('/admin/product/:productId', function (req, res, next) {
     let Response = req.Response;
     if (!Number(req.params.productId)) return res.send(new Response(-1, null, '缺少参数！'));
     next();
 });
 
 router.route('/admin/product/:productId')
-    .get(function(req, res) {
+    .get(function (req, res) {
         let Response = req.Response;
         let Product = req.models.product;
-        Product.get(req.params.productId, function(err, product) {
+        Product.get(req.params.productId, function (err, product) {
             if (err) return res.send(new Response(-20, null, err.message));
             return res.send(new Response(0, product));
         });
     })
-    .post(function(req, res) {
+    .post(function (req, res) {
         let Response = req.Response;
-        let Product = req.models.product; 
-        Product.get(req.params.productId, function(err, product) {
+        let Product = req.models.product;
+        Product.get(req.params.productId, function (err, product) {
             if (err) return res.send(new Response(-1, onerror.message));
             for (k in product) {
                 if (req.body.hasOwnProperty(k)) {
                     product[k] = req.body[k];
-                } 
+                }
             }
-            product.save(function(err) {
+            product.save(function (err) {
                 if (err) return res.send(new Response(-2, onerror.message));
                 return res.send(new Response(0, product, '修改成功！'))
             });
         });
     });
 
-router.post('/admin/product/:productId/del', function(req, res) {
+router.post('/admin/product/:productId/del', function (req, res) {
     let Response = req.Response;
     let Product = req.models.product;
     if (!Number(req.params.prouctId)) return res.send(new Response(-1, null, 'id不合法'));
-    Product.get(req.params.prouctId, function(err, product) {
+    Product.get(req.params.prouctId, function (err, product) {
         if (err) return res.send(new Response(-1, null, err.message));
-        product.remove(function(err) {
+        product.remove(function (err) {
             if (err) return res.send(new Response(-3, null, err.message));
             return res.send(new Response());
         });
@@ -120,20 +120,20 @@ router.post('/admin/product/:productId/del', function(req, res) {
 });
 
 //上传xlsx文件(with默认模板转换器)
-router.post('/import/products/xlsx/default', function(req, res) {
+router.post('/import/products/xlsx/default', function (req, res) {
     uploadXls(req, res, xlsParser, 1);
 });
 //上传xlsx文件(with每日精选模板转换器)
-router.post('/import/products/xlsx/daily', function(req, res) {
+router.post('/import/products/xlsx/daily', function (req, res) {
     uploadXls(req, res, xlsDailyParser, 2);
 });
 
 
-router.get('/admin/xls/upload/history', function(req, res) {
+router.get('/admin/xls/upload/history', function (req, res) {
     var History = req.models.upload_history;
     var Response = req.Response;
-    History.all(function(err, history) {
-        if (err) res.send(new Response(-1, null ,err));
+    History.all(function (err, history) {
+        if (err) res.send(new Response(-1, null, err));
         else return res.send(new Response(0, history));
     });
 });
@@ -146,113 +146,217 @@ function uploadXls(req, res, parser, historyType) {
     });
     var Product = req.models.product;
     var History = req.models.upload_history;
-    form.parse(req, function(err, fields, files) {
+    var UploadGroup = req.models.upload_category;
+    var CategoryGroup = req.models.category_group;
+    form.parse(req, function (err, fields, files) {
         if (files.file.length) {
             var cid = fields['cid'] && fields['cid'].length ? fields['cid'][0] : 0;
             var brand_id = fields['brand_id'] && fields['brand_id'].length ? fields['brand_id'][0] : 0;
             var file = files.file[0];
-            if (!cid) return res.send(new req.Response(-2, null, '分类没有指定'));
+            if (!cid && historyType === 1) return res.send(new req.Response(-2, null, '分类没有指定'));
             const workSheetsFromFile = xlsx.parse(file.path);
             var sheetItems = workSheetsFromFile[0].data;
             var productList = parser(sheetItems, cid, brand_id);
             productList.shift();//去除第一行表头
-            History.create({
-                start: new Date(),
-                cid: cid,
-                brand_id: brand_id,
-                type: historyType
-            }, function(err, record) {
-                err && console.log(err);
-                if(!err) {
-                    res.send(new req.Response(0, record.id, '数据接收成功，稍后查看请求结果'));
-                    var count = 0;
-                    var duplicateCount = 0;
-                    var errCount = 0;
-                    var promises = productList.map(function(product) {
-                        return new Promise(function(resolve, reject) {
-                            Product.create(product, function(err) {
-                                if(err) {
-                                    /**更新重复数据 */
-                                    if (err.code == 'ER_DUP_ENTRY') {
-                                        duplicateCount ++;
-                                        Product.get(product.product_id, function(err, p) {
-                                            if (!err) {
-                                                for (k in p) {
-                                                    if (product[k] && k!= 'product_id') {
-                                                        p[k] = product[k];
-                                                    }
+            var uploadCategoryGroupMap = {};
+            var categoryGroupMap = {};
+            Promise.all([getUploadCategory(UploadGroup), getCategoryGroup(CategoryGroup)])
+                .then(function ([uploadCategories, categoryGroups]) {
+                    uploadCategories.forEach(function (uploadCategory) {
+                        uploadCategoryGroupMap[uploadCategory.name] = uploadCategory;
+                    });
+                    categoryGroups.forEach(function (categoryGroup) {
+                        categoryGroupMap[categoryGroup.id] = categoryGroup;
+                    });
+                    History.create({
+                        start: new Date(),
+                        cid: historyType === 2 ? null : cid,
+                        brand_id: brand_id,
+                        type: historyType
+                    }, function (err, record) {
+                        err && console.log(err);
+                        if (!err) {
+                            res.send(new req.Response(0, record.id, '数据接收成功，稍后查看请求结果'));
+                            var count = 0;
+                            var duplicateCount = 0;
+                            var errCount = 0;
+                            var promises = productList.map(function (product) {
+                                return new Promise(function (resolve, reject) {
+                                    if (historyType === 2) {
+                                        //获取一级分类,并匹配二级分类
+                                        var uploadCategory = product.uploadCategory;//String
+                                        if (!uploadCategoryGroupMap.hasOwnProperty(uploadCategory)) {
+                                            //新建一个上传分类
+                                            uploadCategoryGroupMap[uploadCategory] = { name: uploadCategory };
+                                            UploadGroup.create({ name: uploadCategory }, function (err, uploadCategory) {
+                                                if (!err) {
+                                                    console.log('创建上传分类成功', uploadCategory);
+                                                    return;
                                                 }
-                                                p.save(function(err) {
-                                                    if (!err) {
-                                                        count ++;
-                                                        console.log('更新重复产品success')
-                                                        resolve();
-                                                    } else {
-                                                        console.log('更新重复产品失败', err);
-                                                        errCount ++;
-                                                        resolve();
-                                                    }
-                                                });
+                                                else console.log('创建上传分类失败', err);
+                                            });
+                                            return console.log('分类不存在，创建上传分类');
+                                        } else {
+                                            if (!uploadCategoryGroupMap[uploadCategory] || !uploadCategoryGroupMap[uploadCategory].group || !uploadCategoryGroupMap[uploadCategory].group.id) {
+                                                return;
+                                            }
+                                            var groupId = uploadCategoryGroupMap[uploadCategory]['group']['id'];
+                                            var _group = categoryGroupMap[groupId];
+                                            var categoryKeywords = [];
+                                            var defaultCategoryId = _group.default_category;
+                                            _group.categories.forEach(function (c) {
+                                                if (c && c.keywords) {
+                                                    c.keywords.split(',').forEach(function (keyword) {
+                                                        if (keyword) {
+                                                            categoryKeywords.push({ keyword: keyword, category: c });
+                                                        }
+                                                    });
+                                                }
+                                            });
+                                            var productName = product.product_name;
+                                            var countMap = {};
+                                            categoryKeywords.forEach(function (word) {
+                                                try {
+                                                    var match = String(word.keyword).match(new RegExp(word, 'ig'));
+                                                } catch (e) {
+                                                    console.log(e);
+                                                }
+                                                if (match) countMap[word.keyword] = { categoryId: word.category.id, count: match.length };
+                                            });
+                                            var cateCountMap = {};
+                                            Object.keys(countMap).forEach(function (key) {
+                                                var categoryId = countMap[key]['categoryId'];
+                                                var count = countMap[key]['count'];
+                                                if (cateCountMap[categoryId]) {
+                                                    cateCountMap[categoryId] += count;
+                                                } else {
+                                                    cateCountMap[categoryId] = count;
+                                                }
+                                            });
+                                            var countArraySorted = Object.keys(countMap).map(function (key) {
+                                                return countMap[key];
+                                            }).sort(function (a, b) {
+                                                return b - a;
+                                            });
+                                            var categoryId = countArraySorted.length ? countArraySorted[0]['categoryId'] : defaultCategoryId;//默认分类
+                                            product.cid = categoryId;
+                                        }
+                                    }
+
+                                    if (product.cid) {
+                                        Product.create(product, function (err) {
+                                            if (err) {
+                                                /**更新重复数据 */
+                                                if (err.code == 'ER_DUP_ENTRY') {
+                                                    duplicateCount++;
+                                                    Product.get(product.product_id, function (err, p) {
+                                                        if (!err) {
+                                                            for (k in p) {
+                                                                if (product[k] && k != 'product_id') {
+                                                                    p[k] = product[k];
+                                                                }
+                                                            }
+                                                            p.save(function (err) {
+                                                                if (!err) {
+                                                                    count++;
+                                                                    resolve();
+                                                                } else {
+                                                                    console.log('更新重复产品失败', err);
+                                                                    errCount++;
+                                                                    resolve();
+                                                                }
+                                                            });
+                                                        } else {
+                                                            console.log('获取重复产品但是失败', err);
+                                                            errCount++;
+                                                            resolve();
+                                                        }
+                                                    })
+                                                } else {
+                                                    console.log(err);
+                                                }
                                             } else {
-                                                console.log('获取重复产品但是失败', err);
-                                                errCount ++;
+                                                count++;
                                                 resolve();
                                             }
-                                        })
+                                        });
                                     } else {
-                                        console.log(err);
+                                        resolve();
+                                        console.log('全部操作完成');
                                     }
-                                } else {
-                                    count ++;
-                                    resolve();
-                                }
+
+                                });
                             });
-                        });                       
+                            Promise.all(promises).then(function () {
+                                record.count = count;
+                                record.duplicate_count = duplicateCount;
+                                record.err_count = errCount;
+                                record.end = new Date();
+                                record.done = true;
+                                record.save(function (err) {
+                                    if (err) console.log('上传记录更新失败', err);
+                                });
+                            });
+                        }
                     });
-                    Promise.all(promises).then(function() {
-                        record.count = count;
-                        record.duplicate_count = duplicateCount;
-                        record.err_count = errCount;
-                        record.end = new Date();
-                        record.done = true;
-                        record.save(function(err) {
-                            if (err) console.log('上传记录更新失败', err);
-                        });
-                    });                   
-                }
-            });
+
+                });
         } else {
             return res.send(new req.Response(-1, null, '文件有误'));
         }
-    });    
+    });
+}
+
+function getUploadCategory(uploadGroupModel) {
+    return new Promise(function (resolve, reject) {
+        //获取上传分类列表
+        uploadGroupModel.all(function (err, uploadCategories) {
+            if (err) {
+                reject();
+            } else {
+                resolve(uploadCategories);
+            }
+        });
+    });
+}
+
+function getCategoryGroup(CategoryGroup) {
+    return new Promise(function (resolve, reject) {
+        CategoryGroup.all(function (err, groups) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(groups);
+            }
+        });
+    });
 }
 
 
-
-router.get('/web/brand/:brandId/products', function(req, res) {
+router.get('/web/brand/:brandId/products', function (req, res) {
     let Response = req.Response;
-    let Product = req.models.product; 
+    let Product = req.models.product;
     let brandId = req.params.brandId;
-    Product.find({brand_id: brandId, status: true}, function(err, products) {
-        if (err) return res.send(new Response(-1, null , err));
+    Product.find({ brand_id: brandId, status: true }, function (err, products) {
+        if (err) return res.send(new Response(-1, null, err));
         return res.send(new Response(0, products));
     });
 });
 
-router.post('/web/products/query', function(req, res) {
+router.post('/web/products/query', function (req, res) {
     var hasCoupon = req.body.hasCoupon;//搜素红包时用这个
     var groupId = req.body.groupId;
     var keyword = req.body.kwd;
     var brandIds = req.body.brandIds instanceof Array ? req.body.brandIds : null;
-    var categoryIds = req.body.categoryIds instanceof Array ? req.body.categoryIds: null;
+    var categoryIds = req.body.categoryIds instanceof Array ? req.body.categoryIds : null;
     var Product = req.models.product;
     var CategoryGroup = req.models.category_group;
     var query = {};
-    var Response = req.Response;    
-    brandIds && (brandIds = brandIds.filter(function(brandId) {
+    var Response = req.Response;
+    brandIds && (brandIds = brandIds.filter(function (brandId) {
         return Number(brandId) > 0;
     }));
-    categoryIds && (categoryIds = categoryIds.filter(function(categoryId) {
+    categoryIds && (categoryIds = categoryIds.filter(function (categoryId) {
         return Number(categoryId) > 0;
     }));
     //获取可用的二级分类ID
@@ -261,14 +365,14 @@ router.post('/web/products/query', function(req, res) {
     var floorPrice = null;
     if (brandIds && brandIds.length) query.brand_id = brandIds;
     if (Number(groupId) > 0) {
-        CategoryGroup.get(groupId, function(err, categoryGroup) {
+        CategoryGroup.get(groupId, function (err, categoryGroup) {
             if (err) {
                 availableCategories = [];//查不到记录
                 doQuery(query);
             } else {
                 ceilPrice = categoryGroup.ceil_price;
                 floorPrice = categoryGroup.floor_price;
-                availableCategories = categoryGroup.categories.map(function(c) {
+                availableCategories = categoryGroup.categories.map(function (c) {
                     return c.id;
                 });
                 doQuery(query, floorPrice, ceilPrice);
@@ -281,7 +385,7 @@ router.post('/web/products/query', function(req, res) {
     function doQuery(query, floorPrice, ceilPrice) {
         var queryCategories = null;
         if (categoryIds.length && availableCategories) {
-            queryCategories = categoryIds.filter(function(id) {
+            queryCategories = categoryIds.filter(function (id) {
                 return availableCategories.indexOf(Number(id)) >= 0;
             });
         } else if (categoryIds.length && !availableCategories) {
@@ -296,7 +400,7 @@ router.post('/web/products/query', function(req, res) {
         if (floorPrice > 0) {
             query.price = orm.gte(floorPrice);
         }
-        if (ceilPrice> 0 ) {
+        if (ceilPrice > 0) {
             query.price = orm.lte(ceilPrice);
         }
         if (hasCoupon) {
@@ -305,16 +409,16 @@ router.post('/web/products/query', function(req, res) {
         }
         if (queryCategories) query.cid = queryCategories;
         if (!keyword) {
-            Product.find(query, function(err, products) {
+            Product.find(query, function (err, products) {
                 if (err) return res.send(new Response(-1, null, err));
                 return res.send(new Response(0, products, 'success'));
             });
         } else {
-            Product.find(query).where('product_name like ?', ['%' + keyword + '%']).all(function(err, products) {
+            Product.find(query).where('product_name like ?', ['%' + keyword + '%']).all(function (err, products) {
                 if (err) return res.send(new Response(-2, null, err));
                 return res.send(new Response(0, products, 'success'));
             });
-        }  
+        }
     }
 });
 

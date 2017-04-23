@@ -53,29 +53,6 @@ function parseProducts(xlsArr, cid, brand_id, description) {
  * @param {string} description 
  */
 function parseXLSDaily(xlsArr, cid, brand_id, description) {
-    var keys = [
-        'product_id',
-        'product_name',
-        'product_image',
-        'product_detail_page',
-        'shop_name',
-        'price',
-        'monthly_sold',
-        'benefit_ratio',
-        'benefit_amount',
-        'seller_wangid',
-        'short_share_url',
-        'share_url',
-        'share_command',
-        'coupon_total_amount',
-        'coupon_left_amount',
-        'coupon_text',
-        'coupon_start',
-        'coupon_end',
-        'coupon_link',
-        'coupon_command',
-        'coupon_short_url'
-    ];
     return  xlsArr.map(function(product) {
         var p = {
         'product_id': product[0],
@@ -98,10 +75,11 @@ function parseXLSDaily(xlsArr, cid, brand_id, description) {
         'coupon_end': product[19],
         'coupon_link': product[21],
         'coupon_command': null,
-        'coupon_short_url': product[21]
+        'coupon_short_url': product[21],
+        'uploadCategory': product[4]
         };
-        p.cid = cid;
-        p.brand_id = brand_id;
+        // p.cid = cid;
+        // p.brand_id = brand_id;
         p.status = true;
         p.description = description;
         p.creation_date = new Date();
