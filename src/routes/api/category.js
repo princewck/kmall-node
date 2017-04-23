@@ -39,7 +39,7 @@ router.route('/web/categories')
         let Response = req.Response;
         let Category = req.models.category;
         let resp = new Response();
-        Category.find({status: true}, function (err, categories) {
+        Category.find({ status: true }, function (err, categories) {
             if (err) return resp.setCode(-1), res.send(resp);
             return resp.setData(categories), res.send(resp);
         });
@@ -50,7 +50,9 @@ router.route('/web/categories')
 router.post('/admin/category', function (req, res) {
     let Response = req.Response;
     let Category = req.models.category;
+    let CategoryGroup = req.models.category_group;
     let params = req.body;
+    var groupId = params.groupId;
     let category = {
         name: params.name || null,
         description: params.description || '',
@@ -58,9 +60,21 @@ router.post('/admin/category', function (req, res) {
         status: true
     }
     if (!category.name) return res.send(new Response(-1, null, '名称不可以为空'));
-    Category.create(category, function (err) {
+    Category.create(category, function (err, category) {
         if (err) return consle.log(err), res.send(new Response(-2, null, '新增分类失败！'));
-        return res.send(new Response());
+        if (groupId) {
+            CategoryGroup.get(groupId, function(err, group) {
+                category.setCategoryGroups([group], function(err) {
+                    if (err) {
+                        return res.send(new Response(-3, null, err));
+                    } else {
+                        return res.send(new Response());
+                    }
+                });
+            });
+        } else {
+            return res.send(new Response());
+        }
     })
 });
 
@@ -116,7 +130,7 @@ router.route(/^\/(admin||web)\/categoryGroups$/)
     .get(function (req, res) {
         let Response = req.Response;
         let CategoryGroup = req.models.category_group;
-        CategoryGroup.find({status: true}).all(function (err, categoryGroups) {
+        CategoryGroup.find({ status: true }).all(function (err, categoryGroups) {
             if (err) return res.send(new Response(-1, null, err));
             else return res.send(new Response(0, categoryGroups, 'success!'));
         });
@@ -129,7 +143,7 @@ router.route(/^\/(admin||web)\/categoryGroups\/onbanner$/)
     .get(function (req, res) {
         let Response = req.Response;
         let CategoryGroup = req.models.category_group;
-        CategoryGroup.find({status: true, on_banner: true}).all(function (err, categoryGroups) {
+        CategoryGroup.find({ status: true, on_banner: true }).all(function (err, categoryGroups) {
             if (err) return res.send(new Response(-1, null, err));
             return res.send(new Response(0, categoryGroups, 'success!'));
         });
@@ -141,13 +155,13 @@ router.route(/^\/(admin||web)\/categoryGroups\/onbanner$/)
 router.route('/admin/categoryGroup/:id')
     .get(function (req, res) {
         let Response = req.Response;
-        let CategoryGroup = req.models.category_group; 
+        let CategoryGroup = req.models.category_group;
         let groupId = req.params.id;
         if (!groupId || isNaN(groupId)) {
             return res.send(new Response(-1, null, '参数不合法'));
         }
-        CategoryGroup.get(groupId, function(err, group) {
-            if (err) return res.send(new Response(-2, null. err));
+        CategoryGroup.get(groupId, function (err, group) {
+            if (err) return res.send(new Response(-2, null.err));
             return res.send(new Response(0, group));
         });
     })
@@ -170,15 +184,15 @@ router.route('/admin/categoryGroup/:id')
             status: req.body.status,
             default_category: req.body.default_category
         }
-        CategoryGroup.get(groupId, function(err, g) {
-             if (err) return res.send(new Response(-2, null. err));
-             for (k in group) {
-                 if (g.hasOwnProperty(k)) g[k] = group[k];
-             }
-             g.save(function(err) {
-                if (err) return res.send(new Response(-2, null. err));
+        CategoryGroup.get(groupId, function (err, g) {
+            if (err) return res.send(new Response(-2, null.err));
+            for (k in group) {
+                if (g.hasOwnProperty(k)) g[k] = group[k];
+            }
+            g.save(function (err) {
+                if (err) return res.send(new Response(-2, null.err));
                 return res.send(new Response());
-             });
+            });
         });
     });
 
@@ -257,86 +271,86 @@ router.route('/admin/categoryGroup/:id/categories')
     });
 
 router.get('/web/categoryGroup/:id/categories', function (req, res) {
-        let Response = req.Response;
-        let CategoryGroup = req.models.category_group;
-        let Category = req.models.category;
-        let id = parseInt(req.params.id);
-        if (isNaN(id)) return res.send(new Response(-1, null, '参数错误'));
-        if (id) {
-            CategoryGroup.get(id, function (err, group) {
-                if (err) return res.send(new Response(-2, null, err));
-                let categoryIds = group.categories.map(function(group) {
-                    return group.id;
-                });
-                Category.find({id: categoryIds}, function(err, categories) {
-                    if (err) return res.send(new Response(-3, null, err));
-                    var result = {
-                        group: group,
-                        categories: categories
-                    }
-                    return res.send(new Response(0, result));
-                });
-            });            
-        } else {
-            Category.find({status: true}).all(function(err, categories) {
-                if (err) return res.send(new Response(-4, null, err));
+    let Response = req.Response;
+    let CategoryGroup = req.models.category_group;
+    let Category = req.models.category;
+    let id = parseInt(req.params.id);
+    if (isNaN(id)) return res.send(new Response(-1, null, '参数错误'));
+    if (id) {
+        CategoryGroup.get(id, function (err, group) {
+            if (err) return res.send(new Response(-2, null, err));
+            let categoryIds = group.categories.map(function (group) {
+                return group.id;
+            });
+            Category.find({ id: categoryIds }, function (err, categories) {
+                if (err) return res.send(new Response(-3, null, err));
                 var result = {
-                    group: null,
+                    group: group,
                     categories: categories
                 }
-                return res.send(new Response(0, result));           
+                return res.send(new Response(0, result));
             });
-        }
-    })
+        });
+    } else {
+        Category.find({ status: true }).all(function (err, categories) {
+            if (err) return res.send(new Response(-4, null, err));
+            var result = {
+                group: null,
+                categories: categories
+            }
+            return res.send(new Response(0, result));
+        });
+    }
+})
 
-router.post('/admin/categoryGroup/:id/categories/remove', function(req, res) {
-        var categoryIds = req.body.categoryIds;
-        var groupId = req.params.id;
-        let Response = req.Response;
-        let CategoryGroup = req.models.category_group;
-        let Category = req.models.category; 
-        if (!categoryIds || isNaN(groupId) || !categoryIds instanceof Array || categoryIds.some(function (id) {
-            return isNaN(id);
-        })) {
-            return res.send(new Response(-3, null, '参数不合法'));
-        }
-         CategoryGroup.get(groupId, function(err, group) {
-             if (err) return res.send(new Response(-4, null, err));
-             Category.find({ status: true }).where('id in (' + categoryIds.join(',') + ')').all(function (err, categories) {
-                 if (err) return res.send(new Response(-1, null, err));
-                 group.removeCategories(categories, function(err) {
-                    if (err) return res.send(new Response(-2, null, err));
-                    return res.send(new Response());
-                 });
-             });
-         });          
+router.post('/admin/categoryGroup/:id/categories/remove', function (req, res) {
+    var categoryIds = req.body.categoryIds;
+    var groupId = req.params.id;
+    let Response = req.Response;
+    let CategoryGroup = req.models.category_group;
+    let Category = req.models.category;
+    if (!categoryIds || isNaN(groupId) || !categoryIds instanceof Array || categoryIds.some(function (id) {
+        return isNaN(id);
+    })) {
+        return res.send(new Response(-3, null, '参数不合法'));
+    }
+    CategoryGroup.get(groupId, function (err, group) {
+        if (err) return res.send(new Response(-4, null, err));
+        Category.find({ status: true }).where('id in (' + categoryIds.join(',') + ')').all(function (err, categories) {
+            if (err) return res.send(new Response(-1, null, err));
+            group.removeCategories(categories, function (err) {
+                if (err) return res.send(new Response(-2, null, err));
+                return res.send(new Response());
+            });
+        });
+    });
 });
 
-router.post('/admin/category/:categoryId/categoryGroups', function(req, res) {
-        /**
-         * 根据传入的id数组，为一级分类绑定二级分类
-         */
-        var categoryGroupIds = req.body.categoryGroupIds;
-        var categoryId = req.params.categoryId;
-        let Response = req.Response;
-        let CategoryGroup = req.models.category_group;
-        let Category = req.models.category;
+router.post('/admin/category/:categoryId/categoryGroups', function (req, res) {
+    /**
+     * 根据传入的id数组，为一级分类绑定二级分类
+     */
+    var categoryGroupIds = req.body.categoryGroupIds;
+    var categoryId = req.params.categoryId;
+    let Response = req.Response;
+    let CategoryGroup = req.models.category_group;
+    let Category = req.models.category;
 
-        if (!categoryGroupIds || isNaN(categoryId) || !categoryGroupIds instanceof Array || categoryGroupIds.some(function (id) {
-            return isNaN(id);
-        })) {
-            return res.send(new Response(-3, null, '参数不合法'));
-        }
-        Category.get(categoryId, function(err, category) {
-            if (err) return res.send(new Response(-1, null, err));
-            CategoryGroup.find({status: true}).where('id in (' + categoryGroupIds.join(',') + ')').all(function(err, groups) {
-                if (err) return res.send(new Response(-2, null, err));
-                category.setCategoryGroups(groups, function (err, rt) {
-                    if (err) return res.send(new Response(-3, null, err));
-                    return res.send(new Response());
-                })
-            });
-        });    
+    if (!categoryGroupIds || isNaN(categoryId) || !categoryGroupIds instanceof Array || categoryGroupIds.some(function (id) {
+        return isNaN(id);
+    })) {
+        return res.send(new Response(-3, null, '参数不合法'));
+    }
+    Category.get(categoryId, function (err, category) {
+        if (err) return res.send(new Response(-1, null, err));
+        CategoryGroup.find({ status: true }).where('id in (' + categoryGroupIds.join(',') + ')').all(function (err, groups) {
+            if (err) return res.send(new Response(-2, null, err));
+            category.setCategoryGroups(groups, function (err, rt) {
+                if (err) return res.send(new Response(-3, null, err));
+                return res.send(new Response());
+            })
+        });
+    });
 });
 
 
