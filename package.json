@@ -28,6 +28,7 @@
     "node-xlsx": "^0.7.4",
     "nodemailer": "^2.7.2",
     "orm": "^3.2.3",
+    "orm-paging": "^0.0.1",
     "request": "^2.81.0",
     "uuid": "^3.0.1",
     "xlsx": "^0.8.6"

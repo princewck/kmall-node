@@ -343,16 +343,36 @@ router.get('/web/brand/:brandId/products', function (req, res) {
     });
 });
 
-router.post('/web/products/query', function (req, res) {
+router.get('/web/brand/:brandId/products/p/:pageId', function (req, res) {
+    let Response = req.Response;
+    let Product = req.models.product;
+    let brandId = req.params.brandId;
+    let pageid = req.params.pageId;
+    Product.pages({ brand_id: brandId, status: true }, function (err, pages) {
+        Product.count({ brand_id: brandId, status: true }, function(err, count) {
+            Product.page({ brand_id: brandId, status: true }, pageid).run(function(err, products) {
+                res.send({
+                    total: count,
+                    current: pageid,
+                    pages: pages,
+                    data: products
+                });
+            });
+        });
+    });
+});
+
+router.post('/web/products/query/p/:pageId', function (req, res) {
     var hasCoupon = req.body.hasCoupon;//搜素红包时用这个
     var groupId = req.body.groupId;
     var keyword = req.body.kwd;
     var brandIds = req.body.brandIds instanceof Array ? req.body.brandIds : null;
-    var categoryIds = req.body.categoryIds instanceof Array ? req.body.categoryIds : null;
+    var categoryIds = req.body.categoryIds instanceof Array ? req.body.categoryIds : [];
     var Product = req.models.product;
     var CategoryGroup = req.models.category_group;
     var query = {};
     var Response = req.Response;
+    var pageId = req.params.pageId || 1;
     brandIds && (brandIds = brandIds.filter(function (brandId) {
         return Number(brandId) > 0;
     }));
@@ -384,7 +404,7 @@ router.post('/web/products/query', function (req, res) {
 
     function doQuery(query, floorPrice, ceilPrice) {
         var queryCategories = null;
-        if (categoryIds.length && availableCategories) {
+        if (categoryIds && categoryIds.length && availableCategories) {
             queryCategories = categoryIds.filter(function (id) {
                 return availableCategories.indexOf(Number(id)) >= 0;
             });
@@ -408,17 +428,23 @@ router.post('/web/products/query', function (req, res) {
             query.coupon_end = orm.gt(new Date());
         }
         if (queryCategories) query.cid = queryCategories;
-        if (!keyword) {
-            Product.find(query, function (err, products) {
-                if (err) return res.send(new Response(-1, null, err));
-                return res.send(new Response(0, products, 'success'));
-            });
-        } else {
-            Product.find(query).where('product_name like ?', ['%' + keyword + '%']).all(function (err, products) {
-                if (err) return res.send(new Response(-2, null, err));
-                return res.send(new Response(0, products, 'success'));
-            });
+        if (keyword) {
+            query.product_name = orm.line('%'+ keyword +'%');
         }
+        // if (!keyword) {
+            Product.count(query, function(err, count) {
+                Product.pages(query, function(err, pages) {
+                    Product.page(query, pageId).run(function(err, products) {
+                        var result = {
+                            total:count,
+                            currentPage:pageId,
+                            pages:pages,
+                            data: products
+                        };
+                        return res.send(new Response(0, result, 'success'));
+                    });
+                });
+            });
     }
 });
 

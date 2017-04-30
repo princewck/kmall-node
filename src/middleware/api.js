@@ -1,6 +1,7 @@
 var express = require('express');
 var app = express();
 var orm = require('orm');
+var paging = require("../middleware/pagination");
 var fs = require('fs');
 var path = require('path');
 var configuration = require('../.config');
@@ -8,6 +9,7 @@ var configuration = require('../.config');
 //ORM支持
 app.use(orm.express(configuration.mysqlConfig, {
     define: function (db, models) {
+        db.use(paging);//加载分页插件
         var dir = path.resolve(__dirname, '../models');
         fs.readdir(dir, function(err, files) {
             if (err) return console.log('加载 models/* 模型数据出错');
@@ -20,6 +22,8 @@ app.use(orm.express(configuration.mysqlConfig, {
                 models[model] = db.load(filePath, function(err, cb) {
                     if (err) console.log(model + ': loading error =>', err); 
                 });
+                /** 默认分页长度 */
+                models[model].settings.set("pagination.perpage", 40);
                 //关联关系
                 if (require(filePath).hasMany instanceof Array) {
                     hasManys[model] = require(filePath).hasMany;
