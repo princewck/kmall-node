@@ -138,6 +138,36 @@ router.get('/admin/xls/upload/history', function (req, res) {
     });
 });
 
+router.get('/web/products/promotions/:page', function(req, res) {
+    var Response = req.Response;
+    var Product = req.models.product;
+    var page = req.params.page;
+    // Product.count({status: true, coupon_end: orm.gt(new Date())}).orderRaw("ifnull(??, 0)/?? DESC", ['coupon_price', 'price']).all(function(err, products) {
+    Product.count({status: true, coupon_end: orm.gt(new Date())}, function(err, total) {
+        if (err) {
+            return res.send(new Response(-1, null, err));
+        } else {
+            // return res.send(new Response(0, products));
+            Product
+                .find({status: true, coupon_end: orm.gt(new Date())})
+                .orderRaw("ifnull(??, 0)/?? DESC", ['coupon_price', 'price'])
+                .offset((page-1)*20).limit(20)
+                .all(function(err, products) {
+                    if (err) {
+                        return res.send(new Response(-2, null, err));
+                    } else {
+                        var result = {
+                            total: total,
+                            pages: Math.ceil(total/20),
+                            currentPage: page,
+                            data: products
+                        }
+                        return res.send(new Response(0, result));
+                    }
+            });
+        }
+    });
+});
 
 function uploadXls(req, res, parser, historyType) {
     var form = new multiparty.Form({
@@ -351,12 +381,13 @@ router.get('/web/brand/:brandId/products/p/:pageId', function (req, res) {
     Product.pages({ brand_id: brandId, status: true }, function (err, pages) {
         Product.count({ brand_id: brandId, status: true }, function(err, count) {
             Product.page({ brand_id: brandId, status: true }, pageid).run(function(err, products) {
-                res.send({
+                var result = {
                     total: count,
-                    current: pageid,
+                    currentPage: pageid,
                     pages: pages,
                     data: products
-                });
+                };
+                res.send(new Response(0, result));
             });
         });
     });
@@ -429,7 +460,7 @@ router.post('/web/products/query/p/:pageId', function (req, res) {
         }
         if (queryCategories) query.cid = queryCategories;
         if (keyword) {
-            query.product_name = orm.line('%'+ keyword +'%');
+            query.product_name = orm.like('%'+ keyword +'%');
         }
         // if (!keyword) {
             Product.count(query, function(err, count) {
