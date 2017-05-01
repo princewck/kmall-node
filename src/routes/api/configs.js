@@ -67,7 +67,7 @@ router.route('/web/navbars')
                             newTab: true,
                             sort: 10,
                             text: g.name,
-                            url: '/#!/products/'+ g.id +'///'
+                            url: '/#!/products/g/'+ g.id +'/c//b//kw//p/'
                         }
                     }));
                 }
