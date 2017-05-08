@@ -138,33 +138,32 @@ router.get('/admin/xls/upload/history', function (req, res) {
     });
 });
 
-router.get('/web/products/promotions/:page', function(req, res) {
+router.get('/web/products/promotions/:page', function (req, res) {
     var Response = req.Response;
     var Product = req.models.product;
     var page = req.params.page;
-    // Product.count({status: true, coupon_end: orm.gt(new Date())}).orderRaw("ifnull(??, 0)/?? DESC", ['coupon_price', 'price']).all(function(err, products) {
-    Product.count({status: true, coupon_end: orm.gt(new Date())}, function(err, total) {
+    Product.count({ status: true, coupon_end: orm.gt(new Date()) }, function (err, total) {
         if (err) {
             return res.send(new Response(-1, null, err));
         } else {
             // return res.send(new Response(0, products));
             Product
-                .find({status: true, coupon_end: orm.gt(new Date())})
+                .find({ status: true, coupon_end: orm.gt(new Date()) })
                 .orderRaw("ifnull(??, 0)/?? DESC", ['coupon_price', 'price'])
-                .offset((page-1)*20).limit(20)
-                .all(function(err, products) {
+                .offset((page - 1) * 80).limit(80)
+                .all(function (err, products) {
                     if (err) {
                         return res.send(new Response(-2, null, err));
                     } else {
                         var result = {
                             total: total,
-                            pages: Math.ceil(total/20),
+                            pages: Math.ceil(total / 80),
                             currentPage: page,
                             data: products
                         }
                         return res.send(new Response(0, result));
                     }
-            });
+                });
         }
     });
 });
@@ -193,6 +192,7 @@ function uploadXls(req, res, parser, historyType) {
             Promise.all([getUploadCategory(UploadGroup), getCategoryGroup(CategoryGroup)])
                 .then(function ([uploadCategories, categoryGroups]) {
                     uploadCategories.forEach(function (uploadCategory) {
+                        //根据上传表格中的一级分类名字映射到数据库中的上传分类
                         uploadCategoryGroupMap[uploadCategory.name] = uploadCategory;
                     });
                     categoryGroups.forEach(function (categoryGroup) {
@@ -215,18 +215,21 @@ function uploadXls(req, res, parser, historyType) {
                                     if (historyType === 2) {
                                         //获取一级分类,并匹配二级分类
                                         var uploadCategory = product.uploadCategory;//String
+                                        console.log('---开始-分类=' + uploadCategory + '-------------------')
                                         if (!uploadCategoryGroupMap.hasOwnProperty(uploadCategory)) {
+                                            console.log('~~分类' + uploadCategory + '不存在，开始创建...');
                                             //新建一个上传分类
                                             uploadCategoryGroupMap[uploadCategory] = { name: uploadCategory };
                                             UploadGroup.create({ name: uploadCategory }, function (err, uploadCategory) {
                                                 if (!err) {
-                                                    console.log('创建上传分类成功', uploadCategory);
+                                                    console.log('~~~~分类' + uploadCategory + '创建成功！！！...');
                                                     return;
                                                 }
-                                                else console.log('创建上传分类失败', err);
+                                                else console.log('~~~~分类' + uploadCategory + '创建失败@@@！！！...');
                                             });
-                                            return console.log('分类不存在，创建上传分类');
+                                            return;
                                         } else {
+                                            console.log('~~分类' + uploadCategory + '存在，开始设置上传二级分类..');
                                             if (!uploadCategoryGroupMap[uploadCategory] || !uploadCategoryGroupMap[uploadCategory].group || !uploadCategoryGroupMap[uploadCategory].group.id) {
                                                 return;
                                             }
@@ -244,15 +247,14 @@ function uploadXls(req, res, parser, historyType) {
                                                 }
                                             });
                                             var productName = product.product_name;
+                                            var matchName = productName + '@' + uploadCategory;
                                             var countMap = {};
+                                            // console.log(JSON.stringify(categoryKeywords));
                                             categoryKeywords.forEach(function (word) {
-                                                try {
-                                                    var match = String(word.keyword).match(new RegExp(word, 'ig'));
-                                                } catch (e) {
-                                                    console.log(e);
-                                                }
-                                                if (match) countMap[word.keyword] = { categoryId: word.category.id, count: match.length };
+                                                var match = matchName.match(new RegExp(String(word.keyword), 'ig'))||[];
+                                                countMap[word.keyword] = { categoryId: word.category.id, count: match.length };
                                             });
+
                                             var cateCountMap = {};
                                             Object.keys(countMap).forEach(function (key) {
                                                 var categoryId = countMap[key]['categoryId'];
@@ -263,12 +265,20 @@ function uploadXls(req, res, parser, historyType) {
                                                     cateCountMap[categoryId] = count;
                                                 }
                                             });
-                                            var countArraySorted = Object.keys(countMap).map(function (key) {
-                                                return countMap[key];
-                                            }).sort(function (a, b) {
-                                                return b - a;
+                                            console.log('~~~~~~~~~~~~~~~~~~~~~分类匹配结果：分类id->次数', cateCountMap);
+                                            var countArraySorted = Object.keys(cateCountMap).sort(function (a, b) {
+                                                return Number(cateCountMap[b]) - Number(cateCountMap[a]);
                                             });
-                                            var categoryId = countArraySorted.length ? countArraySorted[0]['categoryId'] : defaultCategoryId;//默认分类
+                                            var categoryId;
+                                            if (countArraySorted.length) {
+                                                categoryId = countArraySorted[0];
+                                                console.log('~~~~~~~~~~~~~~~~~~~~~~~~根据匹配次数，确定id为' + categoryId);
+                                            } else {
+                                                console.log('~~~~~~~~~~~~~~~~~~~~~~~~根据匹配次数，确定id使用默认id:' + defaultCategoryId);
+                                                categoryId = defaultCategoryId;
+                                            }
+                                            // var categoryId = countArraySorted.length ? countArraySorted[0]['categoryId'] : defaultCategoryId;//默认分类
+
                                             product.cid = categoryId;
                                         }
                                     }
@@ -379,8 +389,8 @@ router.get('/web/brand/:brandId/products/p/:pageId', function (req, res) {
     let brandId = req.params.brandId;
     let pageid = req.params.pageId;
     Product.pages({ brand_id: brandId, status: true }, function (err, pages) {
-        Product.count({ brand_id: brandId, status: true }, function(err, count) {
-            Product.page({ brand_id: brandId, status: true }, pageid).run(function(err, products) {
+        Product.count({ brand_id: brandId, status: true }, function (err, count) {
+            Product.page({ brand_id: brandId, status: true }, pageid).run(function (err, products) {
                 var result = {
                     total: count,
                     currentPage: pageid,
@@ -460,22 +470,22 @@ router.post('/web/products/query/p/:pageId', function (req, res) {
         }
         if (queryCategories) query.cid = queryCategories;
         if (keyword) {
-            query.product_name = orm.like('%'+ keyword +'%');
+            query.product_name = orm.like('%' + keyword + '%');
         }
         // if (!keyword) {
-            Product.count(query, function(err, count) {
-                Product.pages(query, function(err, pages) {
-                    Product.page(query, pageId).run(function(err, products) {
-                        var result = {
-                            total:count,
-                            currentPage:pageId,
-                            pages:pages,
-                            data: products
-                        };
-                        return res.send(new Response(0, result, 'success'));
-                    });
+        Product.count(query, function (err, count) {
+            Product.pages(query, function (err, pages) {
+                Product.page(query, pageId).run(function (err, products) {
+                    var result = {
+                        total: count,
+                        currentPage: pageId,
+                        pages: pages,
+                        data: products
+                    };
+                    return res.send(new Response(0, result, 'success'));
                 });
             });
+        });
     }
 });
 
