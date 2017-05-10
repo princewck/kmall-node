@@ -6,7 +6,7 @@ router.use(function(req, res, next) {
     // var form = new multiparty.Form();
     var token = req.headers['k-session'];
     var session = req.session;
-    var User = req.models.systemusers;
+    var User = req.models.users;
     // try {
     //     form.parse(req, function(err, fields, files) {
     //         token = token || fields['K-Session'][0];
@@ -15,9 +15,9 @@ router.use(function(req, res, next) {
     // } catch(e) {
     //     console.log(e);
     // }
-    if (session.systemuser && session.systemuser.token && session.systemuser.token == token) {
+    if (session.user && session.user.token && session.user.token == token) {
         //刷新token过期时间
-        User.get(session.systemuser.id, function(err, user) {
+        User.get(session.user.id, function(err, user) {
             if (err) {
                 console.error('token 过期时间刷新时出错！');
             }

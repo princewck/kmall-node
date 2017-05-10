@@ -86,7 +86,7 @@ router.post('/admin/sysuser/:id', function(req, res) {
 
 });
 
-router.post('/login', function(req, res) {  
+router.post('/login', function(req, res) {
     var username = req.body.username;
     var password = req.body.password;
     var Response = req.Response;
@@ -103,7 +103,7 @@ router.post('/login', function(req, res) {
                 if (err) console.log('session regenerate failed');
                 users[0].token = req.sessionID;
                 users[0].token_expired = new Date(new Date().valueOf() + 3600000);
-                req.session.user = users[0];       
+                req.session.systemuser = users[0];       
                 users[0].save(function(err) {
                     if (err) return res.send(new Response(-4, null, '登录失败！'));
                     return res.send(new Response(0, users[0].getInfo(), '登录成功！'));
@@ -115,9 +115,48 @@ router.post('/login', function(req, res) {
     });
 });
 
+router.post('/user/login', function(req, res) {
+    var username = req.body.username;
+    var password = req.body.password;
+    var Response = req.Response;
+    var User = req.models.users;
+    var md5 = crypto.createHash('md5');
+    if(!username || !password) return res.send(new Response(-1, null, '登录参数不合法!!'));
+    User.find({username: username}, function(err, users) {
+        if (err) return res.send(new Response(-10, null, '内部错误!'));
+        if (users.length < 1) return res.send(new Response(-2, null, '用户名密码错误!'));
+        var salt = users[0].salt;
+        var decyroptedPwd = md5.update(password + salt).digest('hex');
+        if (decyroptedPwd == users[0].password) {
+            req.session.regenerate(function(err) {
+                if (err) console.log('user session regenerate failed');
+                users[0].token = req.sessionID;
+                users[0].token_expired = new Date(new Date().valueOf() + 3600000);
+                req.session.user = users[0];
+                users[0].save(function(err) {
+                    if (err) return res.send(new Response(-4, null, '登录失败！'));
+                    return res.send(new Response(0, users[0].getInfo(), '登录成功！'));
+                });                         
+            });
+        } else {
+            res.send(new Response(-3, null, '用户名密码错误!'));   
+        }
+    });
+});
 
+/**
+ * 退出用户端
+ */
+router.post('/client/logout', function(req, res, next) {
+    req.session.user = null;
+    res.send(new req.Response());
+});
+
+/**
+ * 推出管理端
+ */
 router.post('/admin/logout', function(req, res, next) {
-    req.session.destroy();
+    req.session.systemuser = null;
     res.send(new req.Response());
 });
 
