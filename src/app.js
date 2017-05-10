@@ -13,7 +13,7 @@ var middleware = {
     api: require('./middleware/api'),
     response: require('./middleware/response'),
     prototype: require('./middleware/prototype'),
-    authenticate: require('./middleware/authenticate')
+    authenticateSystem: require('./middleware/authenticate-systemuser')
 }
 
 
@@ -55,7 +55,7 @@ app.use(middleware.prototype);
 //自定义的中间件
 app.use(middleware.api);
 app.use(middleware.response);
-app.use('/admin', middleware.authenticate);//用户认证
+app.use('/admin', middleware.authenticateSystem);//用户认证
 
 
 (function() {
