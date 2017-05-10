@@ -105,6 +105,14 @@ router.route('/admin/product/:productId')
             });
         });
     });
+router.get('/web/product/:productId', function (req, res) {
+    let Response = req.Response;
+    let Product = req.models.product;
+    Product.get(req.params.productId, function (err, product) {
+        if (err) return res.send(new Response(-20, null, err.message));
+        return res.send(new Response(0, product));
+    });
+});
 
 router.post('/admin/product/:productId/del', function (req, res) {
     let Response = req.Response;
@@ -251,7 +259,7 @@ function uploadXls(req, res, parser, historyType) {
                                             var countMap = {};
                                             // console.log(JSON.stringify(categoryKeywords));
                                             categoryKeywords.forEach(function (word) {
-                                                var match = matchName.match(new RegExp(String(word.keyword), 'ig'))||[];
+                                                var match = matchName.match(new RegExp(String(word.keyword), 'ig')) || [];
                                                 countMap[word.keyword] = { categoryId: word.category.id, count: match.length };
                                             });
 

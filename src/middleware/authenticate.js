@@ -22,14 +22,15 @@ router.use(function(req, res, next) {
                 console.error('token 过期时间刷新时出错！');
             }
             else {
+                console.log('时间对比');
+                console.log(new Date(user.token_expired).valueOf(), new Date().valueOf());
                 if (new Date(user.token_expired).valueOf() - new Date().valueOf() < 0) {
                     console.error('token expired');
                     return res.status(401).send(new req.Response(-401, null, 'token expired, authentication failed'));
                 } else {
-                    user.token_expired = new Date(new Date().valueOf() + 1800000);
+                    user.token_expired = new Date(new Date().valueOf() + 3600000);
                     user.save(function(err) {
                         err && console.error('token 过期时间刷新失败！');
-                        console.log('token 过期时间刷新成功！有效期到' + user.token_expired);
                     });
                     next();
                 }

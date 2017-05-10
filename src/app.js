@@ -36,7 +36,7 @@ app.use(session({
     // http协议设为true会出现每次请求都生成不同sessionID的问题
     secure: false,
     maxAge: 1800000,//session有效期为半小时
-    httpOnly: false 
+    httpOnly: false
   }
 }));
 

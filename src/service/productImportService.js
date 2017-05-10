@@ -39,6 +39,7 @@ function parseProducts(xlsArr, cid, brand_id, description) {
         p.description = description;
         p.creation_date = new Date();
         p.coupon_price = getCouponPrice(p.coupon_text);
+        p.platform = null;
         return p;
     }).filter(function (p) {
         //过滤空白行
@@ -69,6 +70,7 @@ function parseXLSDaily(xlsArr, cid, brand_id, description) {
             'short_share_url': product[5],
             'share_url': product[5],
             'share_command': null,
+            'platform':product[13] == '天猫' ? 'tmall' : 'taobao',
             'coupon_total_amount': product[15],
             'coupon_left_amount': product[16],
             'coupon_text': product[17],
