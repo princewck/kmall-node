@@ -70,7 +70,8 @@ app.use('/admin', middleware.authenticateSystem);//用户认证
     oss: require('./routes/api/oss'),
     configs: require('./routes/api/configs'),
     alimama: require('./routes/api/alimama'),
-    uploadCategory: require('./routes/api/upload_category')
+    uploadCategory: require('./routes/api/upload_category'),
+    utils: require('./routes/api/utils')
   }
   var routesArr = [];
   for (k in routes) routesArr.push(routes[k]);

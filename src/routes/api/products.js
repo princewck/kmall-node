@@ -65,6 +65,10 @@ router.get('/admin/category/:categoryId/products', function (req, res) {
     let Category = req.models.category;
     let categoryId = req.params.categoryId;
     let Product = req.models.product;
+    let query = {or: [
+        {cid: category.id, coupon_price: null},
+        {cid: category.id, coupon_price: orm.gt(0), coupon_end: orm.gt(new Date())}
+    ]};
     Category.get(categoryId, function (err, category) {
         if (err) return res.send(new Response(-1, null, err));
         Product.find({ cid: category.id }, function (err, products) {
@@ -396,9 +400,13 @@ router.get('/web/brand/:brandId/products/p/:pageId', function (req, res) {
     let Product = req.models.product;
     let brandId = req.params.brandId;
     let pageid = req.params.pageId;
-    Product.pages({ brand_id: brandId, status: true }, function (err, pages) {
-        Product.count({ brand_id: brandId, status: true }, function (err, count) {
-            Product.page({ brand_id: brandId, status: true }, pageid).run(function (err, products) {
+    var query = {or: [
+        { brand_id: brandId, status: true , coupon_price: null},
+        { brand_id: brandId, status: true , coupon_price: orm.gt(0), coupon_end: orm.gt(new Date())}
+    ]}
+    Product.pages(query, function (err, pages) {
+        Product.count(query, function (err, count) {
+            Product.page(query, pageid).run(function (err, products) {
                 var result = {
                     total: count,
                     currentPage: pageid,
@@ -480,10 +488,15 @@ router.post('/web/products/query/p/:pageId', function (req, res) {
         if (keyword) {
             query.product_name = orm.like('%' + keyword + '%');
         }
+        let _query = {};
+        _query.or = [
+            Object.assign({coupon_price: orm.gt(0), coupon_end: orm.gt(new Date())}, query),
+            Object.assign({coupon_price: null}, query)
+        ];
         // if (!keyword) {
-        Product.count(query, function (err, count) {
-            Product.pages(query, function (err, pages) {
-                Product.page(query, pageId).run(function (err, products) {
+        Product.count(_query, function (err, count) {
+            Product.pages(_query, function (err, pages) {
+                Product.page(_query, pageId).run(function (err, products) {
                     var result = {
                         total: count,
                         currentPage: pageId,
