@@ -26,5 +26,14 @@ module.exports = {
         'appkey': '123456',
         'appsecret': 'xxxx',
         'REST_URL': 'http://gw.api.taobao.com/router/rest'
-    }
+    },
+    mail: {
+        "host": "smtpdm.aliyun.com",
+        "port": 25,
+        "secureConnection": true, // use SSL
+        "auth": {
+            "user": 'master@xxxx.com', // user name
+            "pass": 'xxxxxx'         // password
+        }
+    }    
 }

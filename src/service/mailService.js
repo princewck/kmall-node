@@ -2,17 +2,10 @@
 // npm install nodemailer --save
 
 var nodemailer = require('nodemailer');
+var config = require('../.config');
 
 // create reusable transporter object using SMTP transport
-var transporter = nodemailer.createTransport({
-    "host": "smtpdm.aliyun.com",
-    "port": 25,
-    "secureConnection": true, // use SSL
-    "auth": {
-        "user": 'master@cybpet.com', // user name
-        "pass": 'm2XBfsjnwck'         // password
-    }
-});
+var transporter = nodemailer.createTransport(config.mail);
 
 // // setup e-mail data with unicode symbols
 // var mailOptions = {
