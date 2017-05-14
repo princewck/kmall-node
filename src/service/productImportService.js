@@ -39,6 +39,8 @@ function parseProducts(xlsArr, cid, brand_id, description) {
         p.description = description;
         p.creation_date = new Date();
         p.coupon_price = getCouponPrice(p.coupon_text);
+        p.real_price = p.price - Number(p.coupon_price);
+        p.real_price = p.real_price > 0 ? p.real_price : p.price;        
         p.platform = null;
         return p;
     }).filter(function (p) {
@@ -82,6 +84,8 @@ function parseXLSDaily(xlsArr, cid, brand_id, description) {
             'uploadCategory': product[4]
         };
         p.coupon_price = getCouponPrice(p.coupon_text);
+        p.real_price = p.price - Number(p.coupon_price);
+        p.real_price = p.real_price > 0 ? p.real_price : p.price;
         // p.cid = cid;
         // p.brand_id = brand_id;
         p.status = true;

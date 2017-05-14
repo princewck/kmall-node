@@ -475,10 +475,11 @@ router.post('/web/products/query/p/:pageId', function (req, res) {
             //全没指定
         }
         if (floorPrice > 0) {
-            query.price = orm.gte(floorPrice);
+            query.real_price = orm.gte(floorPrice);
         }
         if (ceilPrice > 0) {
-            query.price = orm.lte(ceilPrice);
+            query.real_price = orm.lte(ceilPrice);
+            query.real_price = orm.gte(0);
         }
         if (hasCoupon) {
             query.coupon_total_amount = orm.gt(0);
