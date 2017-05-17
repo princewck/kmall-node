@@ -29,7 +29,8 @@ function Product(db, cb) {
         coupon_short_url: String,
         coupon_price: Number,
         platform: String,
-        real_price: Number
+        real_price: Number,
+        small_images: {type: 'text'}
     }, {
         methods: {
             getInfo: function() {

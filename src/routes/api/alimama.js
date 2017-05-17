@@ -1,6 +1,8 @@
 var express = require('express');
 var router = express.Router();
 var config = require('../../.config');
+var mysql = require('mysql');
+var moment = require('moment');
 TopClient = require('../../libs/alimama/lib/api/topClient').TopClient;
 var client = new TopClient(config.alimamaConfig);
 
@@ -26,9 +28,9 @@ router.get('/web/product/:id/relevant', function (req, res) {
     });
 });
 
-router.get('/web/xpks', function (req, res) {
+router.get('/admin/xpks', function (req, res) {
     var Response = req.Response;
-    getProductRepositoryList('300', '1').then(function (list) {
+    getProductRepositoryList('200', '1').then(function (list) {
         res.send(new Response(0, list));
     }).catch(function (err) {
         res.send(new Response(-1, null, err));
@@ -36,15 +38,178 @@ router.get('/web/xpks', function (req, res) {
 });
 
 
-router.get('/web/xpks/:id/products', function (req, res) {
+router.get('/web/xpk/:id/products', function (req, res) {
     var Response = req.Response;
     var id = req.params.id;
-    getProductsByRepository(id).then(function (response) {
+    getProductsByRepository(id, 300, 1).then(function (response) {
         res.send(new Response(0, response));
     }).catch(function (err) {
         res.send(new Response(-1, null, err));
     });
 });
+
+/**
+ * 根据选品库名字更新数据库
+ */
+router.post('/admin/xpk/:name/:cid/update', function (req, res) {
+    var cid = req.params.cid;
+    var name = String(req.params.name);
+    var Response = req.Response;
+    var Category = req.models.category;
+    name = name.replace(/：/g, ':');
+    if (!name || !cid) return res.send(new Response(-1, null, '参数不合法'));
+    getProductRepositoryList('200', '1').then((list) => {
+        try {
+            var list = list.results.tbk_favorites.filter((xpk) => {
+                var title = xpk.favorites_title.replace(/：/g, ':');
+                return new RegExp('^' + name, 'ig').test(title);
+            });
+        } catch (e) {
+            console.error(e);
+        }
+        // return res.send(list);
+        var favorites_ids = list.map((fa) => ({id: fa.favorites_id, name: fa.favorites_title}));
+        if (!favorites_ids.length) return res.send(new Response(-6, null, '没有对应的选品库'));
+        update(favorites_ids, 1);
+        var _fields = [];
+        function update(ids, page, _fa) {
+            var callee = arguments.callee;
+            var fa;
+            if (page == 2) {
+                fa = _fa;
+            } else {
+                fa = favorites_ids.shift();
+            }
+            var id =fa['id'];
+            var faName = fa['name'];
+            console.log('同步'+ faName+ '...');
+            console.log('fa_id:', id);
+            getProductsByRepository(id, 100, page).then(function (result) {
+                try {
+                    var total_results = result.total_results;
+                    var items = result.results.uatm_tbk_item;
+                    console.log(items.length);
+                    var itemsSql = items.filter((item) => (item.tk_rate > 0)).map((item) => {
+                        var p = {
+                            product_id: item.num_iid,
+                            cid: cid,
+                            brand_id: null,
+                            status: item.status,
+                            description: '来自选品库同步商品',
+                            creation_date: moment().format('YYYY-MM-DD HH:mm:ss'),
+                            product_name: item.title,
+                            product_image: item.pict_url,
+                            product_detail_page: item.item_url,
+                            shop_name: item.shop_title,
+                            price: item.zk_final_price,
+                            monthly_sold: item.volume,
+                            benefit_ratio: item.tk_rate,
+                            benefit_amount: ((Number(item.tk_rate) || 0) * item.zk_final_price / 100), //佣金
+                            seller_wangid: item.seller_id,
+                            short_share_url: item.click_url || item.item_url,
+                            share_url: item.click_url || item.item_url,
+                            share_command: null,
+
+                            coupon_total_amount: item.coupon_total_count || 0,
+                            coupon_left_amount: item.coupon_remain_count || 0,
+                            coupon_text: item.coupon_info || '',
+                            coupon_start: item.coupon_start_time || '2000-01-01',
+                            coupon_end: item.coupon_end_time || '2000-01-01',
+                            coupon_link: item.coupon_click_url || null,
+                            coupon_command: null,
+                            coupon_short_url: item.coupon_click_url || null,
+                            coupon_price: getCouponPrice(String(item.coupon_info)),
+                            platform: null,
+                            real_price: item.zk_final_price - getCouponPrice(String(item.coupon_info)),
+                            small_images: JSON.stringify(item.small_images)
+                        }
+                        return `( 
+                            ${p.product_id}, 
+                            ${p.cid}, 
+                            ${p.status}, 
+                            '${p.description}', 
+                            '${p.creation_date}', 
+                            '${p.product_name}', 
+                            '${p.product_image}',
+                            '${p.product_detail_page}', 
+                            '${p.shop_name}', 
+                            ${p.price}, 
+                            ${p.monthly_sold}, 
+                            ${p.benefit_ratio}, 
+                            ${p.benefit_amount}, 
+                            '${p.seller_wangid}',
+                            '${p.short_share_url}', 
+                            '${p.share_url}', 
+                            ${p.coupon_total_amount}, 
+                            ${p.coupon_left_amount}, 
+                            '${p.coupon_text}', 
+                            '${p.coupon_start}',
+                            '${p.coupon_end}', 
+                            '${p.coupon_link}', 
+                            '${p.coupon_short_url}', 
+                            ${p.coupon_price},
+                            ${p.real_price}, 
+                            '${p.small_images}'
+                            ) `;
+                    }).join(',');
+                    var sql = `insert into product (id, cid, status, description, creation_date, product_name, product_image, product_detail_page, shop_name, price,
+                                monthly_sold, benefit_ratio, benefit_amount, seller_wangid, short_share_url, share_url, coupon_total_amount, coupon_left_amount, coupon_text,
+                                coupon_start, coupon_end, coupon_link, coupon_short_url, coupon_price, real_price, small_images
+                            ) values ` + itemsSql + ` on duplicate key update  
+                                \`status\` = values(\`status\`), 
+                                cid = values(cid), 
+                                price = values(price),
+                                monthly_sold = values(monthly_sold), 
+                                benefit_ratio = values(benefit_ratio),
+                                benefit_amount = values(benefit_amount),
+                                coupon_left_amount = values(coupon_left_amount);
+                                `;
+                    // return res.send(sql);
+                    var pool = mysql.createPool(config.mysqlPoolConfig);
+                    pool.getConnection(function (err, connection) {
+                        connection.query(sql, function (error, results, fields) {
+                            // And done with the connection.
+                            connection.release();
+                            console.log('同步'+ faName + ' 成功！！！更新了'+ items.length + '条数据。');
+                            if (error) return res.send(new Response(-5, null, error));
+                            results.faName = faName;
+                            results.page = '第'+ page +'页';
+                            _fields.push(results);
+                            if (page == 1 && total_results > 100) {
+                                callee(ids, 2, fa);
+                            } else if (ids.length) {
+                                callee(ids, 1);
+                            } else {
+                                Category.get(cid, (err, category) => {
+                                    if (err) res.send(new Response(-8, null, '内部错误'));
+                                    category.xpk_last_update = new Date();
+                                    category.save(function(err, category) {
+                                        if (err) return res.send(-9, null, '内部错误');
+                                        else return res.send(new Response(0, _fields, '全部更新成功'));
+                                    });
+                                });
+                            }
+                            // Don't use the connection here, it has been returned to the pool.
+                        });
+                    });
+                } catch (e) {
+                    throw new Error(e);
+                }
+            }).catch((e) => {
+                console.error(e);
+                res.send(new Response(-2, null, e));
+            });
+        }
+    });
+});
+
+function getCouponPrice(couponExpression) {
+    var p = /\d{1,}/g;
+    var arr = couponExpression.match(p);
+    arr = arr || [0];
+    var couponPrice = Math.min.apply(Math, arr);
+    return couponPrice || 0;
+}
 
 
 router.post('/web/convert', function (req, res) {
@@ -154,7 +319,7 @@ function getProductRepositoryList(page_size, page_no) {
     return new Promise(function (resolve, reject) {
         client.execute('taobao.tbk.uatm.favorites.get', {
             'page_no': '1',
-            'page_size': '20',
+            'page_size': page_size,
             'fields': 'favorites_title,favorites_id,type',
             'type': '-1'
         }, function (error, response) {
@@ -174,12 +339,12 @@ function getProductsByRepository(favoritesId, pageSize, pageNo) {
     return new Promise(function (resolve, reject) {
         client.execute('taobao.tbk.uatm.favorites.item.get', {
             'platform': '1',//1：PC，2：无线
-            'page_size': isNaN(pageSize) ? '20' : String(pageSize),
-            'adzone_id': '77624711',
+            'page_size': isNaN(pageSize) ? '200' : String(pageSize),
+            'adzone_id': '92230524',
             'unid': '3456',
             'favorites_id': String(favoritesId),
             'page_no': isNaN(pageNo) ? '1' : String(pageNo),
-            'fields': 'click_url,num_iid,title,pict_url,small_images,reserve_price,zk_final_price,user_type,provcity,item_url,seller_id,volume,nick,shop_title,zk_final_price_wap,event_start_time,event_end_time,tk_rate,status,type'
+            'fields': 'click_url,num_iid,title,pict_url,small_images,reserve_price,category,zk_final_price,user_type,provcity,item_url,seller_id,volume,nick,shop_title,zk_final_price_wap,event_start_time,event_end_time,tk_rate,commission_rate,status,type,coupon_click_url,coupon_info,coupon_start_time,coupon_end_time,coupon_total_count,coupon_remain_count,commission_rate'
         }, function (error, response) {
             if (!error) resolve(response);
             else reject(error);
