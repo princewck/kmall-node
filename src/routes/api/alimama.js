@@ -167,7 +167,7 @@ router.post('/admin/xpk/:name/:cid/update', function (req, res) {
                     // return res.send(sql);
                     var pool = mysql.createPool(config.mysqlPoolConfig);
                     pool.getConnection(function (err, connection) {
-                        if (err) return res.send(new Response(-10, err, '数据库连接出错'));
+                        if (err) return console.log(err),res.send(new Response(-10, err, '数据库连接出错'));
                         connection.query(sql, function (error, results, fields) {
                             // And done with the connection.
                             connection.release();
