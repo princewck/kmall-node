@@ -68,7 +68,7 @@ router.post('/admin/xpk/:name/:cid/update', function (req, res) {
             console.error(e);
         }
         // return res.send(list);
-        var favorites_ids = list.map((fa) => ({id: fa.favorites_id, name: fa.favorites_title}));
+        var favorites_ids = list.map((fa) => ({ id: fa.favorites_id, name: fa.favorites_title }));
         if (!favorites_ids.length) return res.send(new Response(-6, null, '没有对应的选品库'));
         update(favorites_ids, 1);
         var _fields = [];
@@ -80,9 +80,9 @@ router.post('/admin/xpk/:name/:cid/update', function (req, res) {
             } else {
                 fa = favorites_ids.shift();
             }
-            var id =fa['id'];
+            var id = fa['id'];
             var faName = fa['name'];
-            console.log('同步'+ faName+ '...');
+            console.log('同步' + faName + '...');
             console.log('fa_id:', id);
             getProductsByRepository(id, 100, page).then(function (result) {
                 try {
@@ -167,13 +167,14 @@ router.post('/admin/xpk/:name/:cid/update', function (req, res) {
                     // return res.send(sql);
                     var pool = mysql.createPool(config.mysqlPoolConfig);
                     pool.getConnection(function (err, connection) {
+                        if (err) return res.send(new Response(-10, err, '数据库连接出错')));
                         connection.query(sql, function (error, results, fields) {
                             // And done with the connection.
                             connection.release();
-                            console.log('同步'+ faName + ' 成功！！！更新了'+ items.length + '条数据。');
+                            console.log('同步' + faName + ' 成功！！！更新了' + items.length + '条数据。');
                             if (error) return res.send(new Response(-5, null, error));
                             results.faName = faName;
-                            results.page = '第'+ page +'页';
+                            results.page = '第' + page + '页';
                             _fields.push(results);
                             if (page == 1 && total_results > 100) {
                                 callee(ids, 2, fa);
@@ -183,7 +184,7 @@ router.post('/admin/xpk/:name/:cid/update', function (req, res) {
                                 Category.get(cid, (err, category) => {
                                     if (err) res.send(new Response(-8, null, '内部错误'));
                                     category.xpk_last_update = new Date();
-                                    category.save(function(err, category) {
+                                    category.save(function (err, category) {
                                         if (err) return res.send(-9, null, '内部错误');
                                         else return res.send(new Response(0, _fields, '全部更新成功'));
                                     });
@@ -201,6 +202,12 @@ router.post('/admin/xpk/:name/:cid/update', function (req, res) {
             });
         }
     });
+});
+
+router.get('/tbk/orders', function(req, res) {
+    getOrders().then(res => {
+        res.send(res);
+    }).catch((e) => res.send(e));
 });
 
 function getCouponPrice(couponExpression) {
@@ -381,6 +388,29 @@ function couponSearch(q, pageSize, pageNo) {
             if (!error) resolve(response);
             else reject(error);
         });
+    });
+}
+
+function getOrders() {
+    return new Promise((resolve, reject) => {
+        client.execute('taobao.tbk.order.get', {
+            'fields': 'tb_trade_parent_id,tb_trade_id,num_iid,item_title,item_num,price,pay_price,seller_nick,seller_shop_title,commission,commission_rate,unid,create_time,earning_time,tk3rd_pub_id,tk3rd_site_id,tk3rd_adzone_id',
+            'start_time': '2016-05-23 12:18:22',
+            'span': '600',
+            'page_no': '1',
+            'page_size': '100',
+            'tk_status': '1',
+            'order_query_type': 'create_time'
+        }, function (error, response) {
+            if (!error) {
+                console.log(response);
+                resolve(response);
+            }
+            else {
+                console.log(error);
+                reject(error);
+            };
+        })
     });
 }
 
