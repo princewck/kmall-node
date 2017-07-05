@@ -63,8 +63,8 @@ router.post('/admin/category', function (req, res) {
     Category.create(category, function (err, category) {
         if (err) return consle.log(err), res.send(new Response(-2, null, '新增分类失败！'));
         if (groupId) {
-            CategoryGroup.get(groupId, function(err, group) {
-                category.setCategoryGroups([group], function(err) {
+            CategoryGroup.get(groupId, function (err, group) {
+                category.setCategoryGroups([group], function (err) {
                     if (err) {
                         return res.send(new Response(-3, null, err));
                     } else {
@@ -152,19 +152,22 @@ router.route(/^\/(admin||web)\/categoryGroups\/onbanner$/)
 /**
  * 根据id 获取和更新一级分类
  */
+function getGroup(req, res) {
+    let Response = req.Response;
+    let CategoryGroup = req.models.category_group;
+    let groupId = req.params.id;
+    if (!groupId || isNaN(groupId)) {
+        return res.send(new Response(-1, null, '参数不合法'));
+    }
+    CategoryGroup.get(groupId, function (err, group) {
+        if (err) return res.send(new Response(-2, null.err));
+        return res.send(new Response(0, group));
+    });
+}
+
+router.route('/web/categoryGroup/:id')
 router.route('/admin/categoryGroup/:id')
-    .get(function (req, res) {
-        let Response = req.Response;
-        let CategoryGroup = req.models.category_group;
-        let groupId = req.params.id;
-        if (!groupId || isNaN(groupId)) {
-            return res.send(new Response(-1, null, '参数不合法'));
-        }
-        CategoryGroup.get(groupId, function (err, group) {
-            if (err) return res.send(new Response(-2, null.err));
-            return res.send(new Response(0, group));
-        });
-    })
+    .get(getGroup)
     .post(function (req, res) {
         let Response = req.Response;
         let CategoryGroup = req.models.category_group;
