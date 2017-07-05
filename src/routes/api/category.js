@@ -165,7 +165,7 @@ function getGroup(req, res) {
     });
 }
 
-router.route('/web/categoryGroup/:id')
+router.route('/web/categoryGroup/:id').get(getGroup);
 router.route('/admin/categoryGroup/:id')
     .get(getGroup)
     .post(function (req, res) {
