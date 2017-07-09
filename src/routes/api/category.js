@@ -57,7 +57,8 @@ router.post('/admin/category', function (req, res) {
         name: params.name || null,
         description: params.description || '',
         sort: params.sort || 0,
-        status: true
+        status: true,
+        image: params.image || ''
     }
     if (!category.name) return res.send(new Response(-1, null, '名称不可以为空'));
     Category.create(category, function (err, category) {
