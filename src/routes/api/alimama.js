@@ -64,6 +64,7 @@ router.post('/admin/xpk/:name/:cid/update', function (req, res) {
                 var title = xpk.favorites_title.replace(/：/g, ':');
                 return new RegExp('^' + name, 'ig').test(title);
             });
+            console.log('选品库列表：', list);
         } catch (e) {
             console.error(e);
         }
@@ -123,63 +124,66 @@ router.post('/admin/xpk/:name/:cid/update', function (req, res) {
                             real_price: item.zk_final_price - getCouponPrice(String(item.coupon_info)),
                             small_images: JSON.stringify(item.small_images)
                         }
-                        return `( 
-                            ${p.product_id}, 
-                            ${p.cid}, 
-                            ${p.status}, 
-                            '${p.description}', 
-                            '${p.creation_date}', 
-                            '${p.product_name}', 
-                            '${p.product_image}',
-                            '${p.product_detail_page}', 
-                            '${p.shop_name}', 
-                            ${p.price}, 
-                            ${p.monthly_sold}, 
-                            ${p.benefit_ratio}, 
-                            ${p.benefit_amount}, 
-                            '${p.seller_wangid}',
-                            '${p.short_share_url}', 
-                            '${p.share_url}', 
-                            ${p.coupon_total_amount}, 
-                            ${p.coupon_left_amount}, 
-                            '${p.coupon_text}', 
-                            '${p.coupon_start}',
-                            '${p.coupon_end}', 
-                            '${p.coupon_link}', 
-                            '${p.coupon_short_url}', 
-                            ${p.coupon_price},
-                            ${p.real_price}, 
-                            '${p.small_images}'
-                            ) `;
+                        Object.keys(p).forEach(function (key) {
+                            if (p[key] && typeof(p[key]) === 'string') {
+                                p[key] = p[key].replace(/\'/g, '\\\'');
+                            };
+                        });
+                        return `(${p.product_id},${p.cid},${p.status},'${p.description}','${p.creation_date}','${p.product_name}','${p.product_image}','${p.product_detail_page}','${p.shop_name}',${p.price},${p.monthly_sold},${p.benefit_ratio},${p.benefit_amount},'${p.seller_wangid}','${p.short_share_url}','${p.share_url}',${p.coupon_total_amount},${p.coupon_left_amount},'${p.coupon_text}','${p.coupon_start}','${p.coupon_end}','${p.coupon_link}','${p.coupon_short_url}',${p.coupon_price},${p.real_price},'${p.small_images}')`;
+                        // return `( 
+                        //     ${p.product_id}, 
+                        //     ${p.cid}, 
+                        //     ${p.status}, 
+                        //     '${p.description}', 
+                        //     '${p.creation_date}', 
+                        //     '${p.product_name}', 
+                        //     '${p.product_image}',
+                        //     '${p.product_detail_page}', 
+                        //     '${p.shop_name}', 
+                        //     ${p.price}, 
+                        //     ${p.monthly_sold}, 
+                        //     ${p.benefit_ratio}, 
+                        //     ${p.benefit_amount}, 
+                        //     '${p.seller_wangid}',
+                        //     '${p.short_share_url}', 
+                        //     '${p.share_url}', 
+                        //     ${p.coupon_total_amount}, 
+                        //     ${p.coupon_left_amount}, 
+                        //     '${p.coupon_text}', 
+                        //     '${p.coupon_start}',
+                        //     '${p.coupon_end}', 
+                        //     '${p.coupon_link}', 
+                        //     '${p.coupon_short_url}', 
+                        //     ${p.coupon_price},
+                        //     ${p.real_price}, 
+                        //     '${p.small_images}'
+                        //     ) `;
                     }).join(',');
-                    var sql = `insert into product (id, cid, status, description, creation_date, product_name, product_image, product_detail_page, shop_name, price,
-                                monthly_sold, benefit_ratio, benefit_amount, seller_wangid, short_share_url, share_url, coupon_total_amount, coupon_left_amount, coupon_text,
-                                coupon_start, coupon_end, coupon_link, coupon_short_url, coupon_price, real_price, small_images
-                            ) values ` + itemsSql + ` on duplicate key update  
-                                \`status\` = values(\`status\`), 
-                                cid = values(cid), 
-                                price = values(price),
-                                monthly_sold = values(monthly_sold), 
-                                benefit_ratio = values(benefit_ratio),
-                                benefit_amount = values(benefit_amount),
-                                coupon_left_amount = values(coupon_left_amount);
-                                `;
+                    // itemsSql = itemsSql.replace(/\'/g, '\\\'');
+                    var sql = `insert into product (id, cid, status, description, creation_date, product_name, product_image, product_detail_page, shop_name,price,monthly_sold, benefit_ratio, benefit_amount, seller_wangid, short_share_url, share_url, coupon_total_amount, coupon_left_amount,coupon_text,coupon_start, coupon_end, coupon_link, coupon_short_url, coupon_price, real_price, small_images) values ` + itemsSql + ` on duplicate key update status = values(status), cid = values(cid),price = values(price),monthly_sold = values(monthly_sold),benefit_ratio = values(benefit_ratio),benefit_amount = values(benefit_amount),coupon_left_amount = values(coupon_left_amount);`;
                     // return res.send(sql);
+                    // console.log(sql);
                     var pool = mysql.createPool(config.mysqlPoolConfig);
                     pool.getConnection(function (err, connection) {
-                        if (err) return console.log(err),res.send(new Response(-10, err, '数据库连接出错'));
+                        if (err) return console.log(err), res.send(new Response(-10, err, '数据库连接出错'));
                         connection.query(sql, function (error, results, fields) {
                             // And done with the connection.
                             connection.release();
                             console.log('同步' + faName + ' 成功！！！更新了' + items.length + '条数据。');
-                            if (error) return res.send(new Response(-5, null, error));
+                            if (error) return res.send(new Response(-5, sql, error));
                             results.faName = faName;
                             results.page = '第' + page + '页';
                             _fields.push(results);
                             if (page == 1 && total_results > 100) {
-                                callee(ids, 2, fa);
+                                setTimeout(function () {
+                                    console.log('开始请求id:'+ id +'的第2页');
+                                    callee(ids, 2, fa);
+                                }, 800);
                             } else if (ids.length) {
-                                callee(ids, 1);
+                                setTimeout(function () {
+                                    console.log('开始请求id:'+ id +'的第1页');
+                                    callee(ids, 1);
+                                }, 800);
                             } else {
                                 Category.get(cid, (err, category) => {
                                     if (err) res.send(new Response(-8, null, '内部错误'));
@@ -204,7 +208,7 @@ router.post('/admin/xpk/:name/:cid/update', function (req, res) {
     });
 });
 
-router.get('/tbk/orders', function(req, res) {
+router.get('/tbk/orders', function (req, res) {
     getOrders().then(res => {
         res.send(res);
     }).catch((e) => res.send(e));
