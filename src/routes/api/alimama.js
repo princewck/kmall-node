@@ -5,6 +5,7 @@ var mysql = require('mysql');
 var moment = require('moment');
 TopClient = require('../../libs/alimama/lib/api/topClient').TopClient;
 var client = new TopClient(config.alimamaConfig);
+var adzone_id = '92230524';
 
 router.post('/web/query', function (req, res) {
     var Response = req.Response;
@@ -125,44 +126,13 @@ router.post('/admin/xpk/:name/:cid/update', function (req, res) {
                             small_images: JSON.stringify(item.small_images)
                         }
                         Object.keys(p).forEach(function (key) {
-                            if (p[key] && typeof(p[key]) === 'string') {
+                            if (p[key] && typeof (p[key]) === 'string') {
                                 p[key] = p[key].replace(/\'/g, '\\\'');
                             };
                         });
                         return `(${p.product_id},${p.cid},${p.status},'${p.description}','${p.creation_date}','${p.product_name}','${p.product_image}','${p.product_detail_page}','${p.shop_name}',${p.price},${p.monthly_sold},${p.benefit_ratio},${p.benefit_amount},'${p.seller_wangid}','${p.short_share_url}','${p.share_url}',${p.coupon_total_amount},${p.coupon_left_amount},'${p.coupon_text}','${p.coupon_start}','${p.coupon_end}','${p.coupon_link}','${p.coupon_short_url}',${p.coupon_price},${p.real_price},'${p.small_images}')`;
-                        // return `( 
-                        //     ${p.product_id}, 
-                        //     ${p.cid}, 
-                        //     ${p.status}, 
-                        //     '${p.description}', 
-                        //     '${p.creation_date}', 
-                        //     '${p.product_name}', 
-                        //     '${p.product_image}',
-                        //     '${p.product_detail_page}', 
-                        //     '${p.shop_name}', 
-                        //     ${p.price}, 
-                        //     ${p.monthly_sold}, 
-                        //     ${p.benefit_ratio}, 
-                        //     ${p.benefit_amount}, 
-                        //     '${p.seller_wangid}',
-                        //     '${p.short_share_url}', 
-                        //     '${p.share_url}', 
-                        //     ${p.coupon_total_amount}, 
-                        //     ${p.coupon_left_amount}, 
-                        //     '${p.coupon_text}', 
-                        //     '${p.coupon_start}',
-                        //     '${p.coupon_end}', 
-                        //     '${p.coupon_link}', 
-                        //     '${p.coupon_short_url}', 
-                        //     ${p.coupon_price},
-                        //     ${p.real_price}, 
-                        //     '${p.small_images}'
-                        //     ) `;
                     }).join(',');
-                    // itemsSql = itemsSql.replace(/\'/g, '\\\'');
                     var sql = `insert into product (id, cid, status, description, creation_date, product_name, product_image, product_detail_page, shop_name,price,monthly_sold, benefit_ratio, benefit_amount, seller_wangid, short_share_url, share_url, coupon_total_amount, coupon_left_amount,coupon_text,coupon_start, coupon_end, coupon_link, coupon_short_url, coupon_price, real_price, small_images) values ` + itemsSql + ` on duplicate key update status = values(status), cid = values(cid),price = values(price),monthly_sold = values(monthly_sold),benefit_ratio = values(benefit_ratio),benefit_amount = values(benefit_amount),coupon_left_amount = values(coupon_left_amount);`;
-                    // return res.send(sql);
-                    // console.log(sql);
                     var pool = mysql.createPool(config.mysqlPoolConfig);
                     pool.getConnection(function (err, connection) {
                         if (err) return console.log(err), res.send(new Response(-10, err, '数据库连接出错'));
@@ -176,12 +146,12 @@ router.post('/admin/xpk/:name/:cid/update', function (req, res) {
                             _fields.push(results);
                             if (page == 1 && total_results > 100) {
                                 setTimeout(function () {
-                                    console.log('开始请求id:'+ id +'的第2页');
+                                    console.log('开始请求id:' + id + '的第2页');
                                     callee(ids, 2, fa);
                                 }, 800);
                             } else if (ids.length) {
                                 setTimeout(function () {
-                                    console.log('开始请求id:'+ id +'的第1页');
+                                    console.log('开始请求id:' + id + '的第1页');
                                     callee(ids, 1);
                                 }, 800);
                             } else {
@@ -254,6 +224,40 @@ router.get('/web/product/:id/detail', function (req, res) {
         });
     }
 });
+
+/**
+ * 好券清单
+ */
+router.get('/web/nice_coupons/:kw/:page', (req, res) => {
+    niceCouponList(req.params.kw, req.params.page)
+        .then((list) => {
+            res.send(list);
+        })
+        .catch(() => {
+            res.send('error');
+        });
+});
+router.get('/web/hot_goods/:page', (req, res) => {
+    hotList(req.params.page)
+        .then((list) => {
+            res.send(list);
+        })
+        .catch((err) => {
+            res.send(err);
+        });
+});
+
+//无权限
+// router.get('/web/tbk/categories/:parent_id/:cid', function (req, res) {
+//     categories(req.params.parent_id, req.params.cid)
+//         .then(list => {
+//             res.send(list);
+//         })
+//         .catch(err => {
+//             res.send(err);
+//         });
+// });
+
 
 function getProductDetail(id) {
     return new Promise(function (resolve, reject) {
@@ -351,7 +355,7 @@ function getProductsByRepository(favoritesId, pageSize, pageNo) {
         client.execute('taobao.tbk.uatm.favorites.item.get', {
             'platform': '1',//1：PC，2：无线
             'page_size': isNaN(pageSize) ? '200' : String(pageSize),
-            'adzone_id': '92230524',
+            'adzone_id': adzone_id,
             'unid': '3456',
             'favorites_id': String(favoritesId),
             'page_no': isNaN(pageNo) ? '1' : String(pageNo),
@@ -415,6 +419,59 @@ function getOrders() {
                 reject(error);
             };
         })
+    });
+}
+
+function niceCouponList(kw = null, page=1) {
+    if (kw === 'all') kw = null;
+    return new Promise((resolve, reject) => {
+        let query = {
+            'adzone_id': adzone_id,
+            'platform': '2',
+            // 'cat': '16,18',
+            'page_size': '100',
+            'page_no': page
+        };
+        kw && (query.q = kw);
+        client.execute('taobao.tbk.dg.item.coupon.get', query, function (error, response) {
+            if (!error) resolve(response);
+            else reject(error);
+        })
+    });
+}
+
+// function categories(pid = '0', cid) {
+//     return new Promise((resolve, reject) => {
+//         let params = {
+//             // 'cids': '18957,19562',
+//             'datetime': '2017-07-14 00:00:00',
+//             'fields': 'cid,parent_cid,name,is_parent',
+//             'parent_cid': pid
+//         };
+//         cid && (params.cids=cid);
+//         client.execute('taobao.itemcats.get', params, (error, response) => {
+//             if (!error) resolve(response);
+//             else reject(error);
+//         })
+//     });
+// }
+
+/**
+ * 淘抢购清单
+ */
+function hotList(page = 1) {
+    return new Promise((resolve, reject) => {
+        client.execute('taobao.tbk.ju.tqg.get', {
+            'adzone_id': adzone_id,
+            'fields': 'click_url,pic_url,reserve_price,zk_final_price,total_amount,sold_num,title,category_name,start_time,end_time',
+            'start_time': '2017-07-13 23:00:00',//最早开团时间
+            'end_time': '2016-07-13 23:30:00',//最晚开团时间
+            'page_no': page,
+            'page_size': '95'
+        }, function (error, response) {
+            if (!error) resolve(response);
+            else reject(error);
+        });
     });
 }
 

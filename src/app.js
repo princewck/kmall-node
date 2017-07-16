@@ -8,6 +8,7 @@ var session = require('express-session');
 var MySQLStore = require('express-mysql-session')(session);
 var uuid = require('uuid');
 var configurations = require('./.config.js');
+var history = require('connect-history-api-fallback');
 
 var middleware = {
     api: require('./middleware/api'),
@@ -78,6 +79,9 @@ app.use('/admin', middleware.authenticateSystem);//用户认证
   //自定义的路由
   app.use.apply(app, ['/', ...routesArr]);  
 }());
+
+app.use(history());
+
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
