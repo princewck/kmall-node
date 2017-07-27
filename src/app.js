@@ -8,7 +8,6 @@ var session = require('express-session');
 var MySQLStore = require('express-mysql-session')(session);
 var uuid = require('uuid');
 var configurations = require('./.config.js');
-var history = require('connect-history-api-fallback');
 
 var middleware = {
     api: require('./middleware/api'),
@@ -36,7 +35,7 @@ app.use(session({
   cookie: { 
     // http协议设为true会出现每次请求都生成不同sessionID的问题
     secure: false,
-    maxAge: 1800000,//session有效期为半小时
+    maxAge: 3600000 * 24,//session有效期为24小时
     httpOnly: false
   }
 }));
@@ -79,9 +78,6 @@ app.use('/admin', middleware.authenticateSystem);//用户认证
   //自定义的路由
   app.use.apply(app, ['/', ...routesArr]);  
 }());
-
-app.use(history());
-
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

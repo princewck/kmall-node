@@ -237,8 +237,8 @@ router.get('/web/nice_coupons/:kw/:page', (req, res) => {
             res.send('error');
         });
 });
-router.get('/web/hot_goods/:page', (req, res) => {
-    hotList(req.params.page)
+router.get('/web/hot_goods/:start/:page', (req, res) => {
+    hotList(req.params.start, req.params.page)
         .then((list) => {
             res.send(list);
         })
@@ -459,13 +459,13 @@ function niceCouponList(kw = null, page=1) {
 /**
  * 淘抢购清单
  */
-function hotList(page = 1) {
+function hotList(start= moment(), page = 1) {
     return new Promise((resolve, reject) => {
         client.execute('taobao.tbk.ju.tqg.get', {
             'adzone_id': adzone_id,
             'fields': 'click_url,pic_url,reserve_price,zk_final_price,total_amount,sold_num,title,category_name,start_time,end_time',
-            'start_time': '2017-07-13 23:00:00',//最早开团时间
-            'end_time': '2016-07-13 23:30:00',//最晚开团时间
+            'start_time': moment(start).format('YYYY-MM-DD HH:mm:ss'),//最早开团时间
+            'end_time': moment(start).endOf('hour').format('YYYY-MM-DD HH:mm:ss'),//最晚开团时间
             'page_no': page,
             'page_size': '95'
         }, function (error, response) {
