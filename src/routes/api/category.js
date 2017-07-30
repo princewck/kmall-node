@@ -146,6 +146,10 @@ router.route(/^\/(admin||web)\/categoryGroups\/onbanner$/)
         let CategoryGroup = req.models.category_group;
         CategoryGroup.find({ status: true, on_banner: true }).all(function (err, categoryGroups) {
             if (err) return res.send(new Response(-1, null, err));
+            categoryGroups = categoryGroups || [];
+            categoryGroups = categoryGroups.sort((c1, c2) => {
+                return c1.sort - c2.sort;
+            });
             return res.send(new Response(0, categoryGroups, 'success!'));
         });
     })
@@ -245,7 +249,9 @@ router.route('/admin/categoryGroup/:id/categories')
         console.log(CategoryGroup);
         CategoryGroup.get(id, function (err, group) {
             if (err) return res.send(new Response(-2, null, err));
-            return res.send(new Response(0, group.categories));
+            return res.send(new Response(0, group.categories.sort((c1, c2) => {
+                return c1.sort - c2.sort;
+            })));
         });
     })
     .post(function (req, res) {
@@ -290,7 +296,9 @@ router.get('/web/categoryGroup/:id/categories', function (req, res) {
                 if (err) return res.send(new Response(-3, null, err));
                 var result = {
                     group: group,
-                    categories: categories
+                    categories: categories.sort((c1, c2) => {
+                        return c1.sort - c2.sort;
+                    })
                 }
                 return res.send(new Response(0, result));
             });
