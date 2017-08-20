@@ -231,6 +231,7 @@ function uploadXls(req, res, parser, source) {
         console.timeEnd('convert xls to list');
         var uploadCategoryMap = {};
         var categoryGroupMap = {};
+        var newUploadCategories = [];
         if (!(productList instanceof Array) || !productList.length) {
             response.setCode(-1);
             response.setMessage('提交的数据不合法');
@@ -327,7 +328,6 @@ function uploadXls(req, res, parser, source) {
             })
             .then(() => {
                 console.timeEnd('process_category_groups');
-                let newUploadCategories = [];
                 let keyAry = [
                     { 'name': 'id', 'type': 'Number', map: 'product_id' },
                     { 'name': 'cid', 'type': 'Number' },
@@ -426,7 +426,9 @@ function uploadXls(req, res, parser, source) {
             .then(results => {
                 console.timeEnd('execute_sqls');
                 console.timeEnd('upload_and_process_excel');
-                res.send(results);
+                response.setData(results);
+                response.setMessage('上传成功！');
+                res.send(response);
             })
             .catch(err => {
                 console.log(err);
