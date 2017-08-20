@@ -13,14 +13,6 @@ var xlsParser = productImportService.parseXLSDefault;
 var xlsDailyParser = productImportService.parseXLSDaily;
 
 router.route('/admin/products')
-    .get(function (req, res) {
-        let Products = req.models.product;
-        let Response = req.Response;
-        Products.find({ status: true }, function (err, products) {
-            if (err) return res.send(new Response(-1, null, err.message));
-            return res.send(new Response(0, products));
-        });
-    })
     .post(function (req, res) {
         let Products = req.models.product;
         let Response = req.Response;
@@ -60,6 +52,31 @@ router.route('/admin/products')
             return res.send(new Response(0, items));
         });
     });
+router.get('/admin/products/:page', function (req, res) {
+    let queryObj = req.query;
+    const Product = req.models.product;
+    const Response = req.Response;
+    let pageId = req.params.page || 1;
+    var query = {
+        or: [
+            Object.assign({ status: true, coupon_price: null }, queryObj),
+            Object.assign({ status: true, coupon_price: orm.gt(0), coupon_end: orm.gt(new Date()) }, queryObj)
+        ]
+    }
+    Product.pages(query, function (err, pages) {
+        Product.count(query, function (err, count) {
+            Product.page(query, pageId).run(function (err, products) {
+                var result = {
+                    total: count,
+                    currentPage: pageId,
+                    pages: pages,
+                    data: products
+                };
+                res.send(new Response(0, result));
+            });
+        });
+    });
+});
 
 //根据分类获取商品
 router.get('/admin/category/:categoryId/products', function (req, res) {
