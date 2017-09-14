@@ -19,6 +19,15 @@ router.post('/mail/send', function(req, res) {
     });
 });
 
+router.get('/publish/pic', function (req, res) {
+    var pictures = [
+        'http://img.alicdn.com/bao/uploaded/i4/T1AfpFFrldXXXXXXXX_!!0-item_pic.jpg',
+        'http://img.alicdn.com/bao/uploaded/i4/TB1Um.wSpXXXXcaXFXXXXXXXXXX_!!0-item_pic.jpg',
+        'http://img.alicdn.com/bao/uploaded/i3/TB1mt4oJFXXXXXhXVXXXXXXXXXX_!!0-item_pic.jpg'
+    ];
+    res.redirect(pictures[new Date().valueOf() % 3]);
+});
+
 router.get('/jwt/encode/:signature', function(req, res) {
     var cert = req.params.signature;
     var token = jwt.sign({ foo: 'wck' }, cert);
