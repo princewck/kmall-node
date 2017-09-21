@@ -97,7 +97,6 @@ function parseXLSDaily(xlsArr, cid, brand_id, description) {
         p.creation_date = new Date();
         return p;
     }).filter(function (p, index) {
-        return false;
         //过滤空白行和销量过低的商品,这里表头不满足p.monthly_sold，所以也被隐含的去除了。
         return p.product_id && p.product_name && Number.parseInt(p.monthly_sold) > 200;
     });
