@@ -62,31 +62,6 @@ function parseXLSDaily(xlsArr, cid, brand_id, description) {
     return xlsArr.map(function (product, index) {
         var p = mapperHelper(product);
         if (index === 0) console.log(p);
-        // var p = {
-        //     'product_id': product[0],
-        //     'product_name': product[1],
-        //     'product_image': product[2],
-        //     'product_detail_page': product[3],
-        //     'shop_name': product[12],
-        //     'price': product[6],
-        //     'monthly_sold': product[7],
-        //     'benefit_ratio': product[8],
-        //     'benefit_amount': product[9],
-        //     'seller_wangid': product[10],
-        //     'short_share_url': product[5],
-        //     'share_url': product[5],
-        //     'share_command': null,
-        //     'platform': product[13] == '天猫' ? 'tmall' : 'taobao',
-        //     'coupon_total_amount': product[15],
-        //     'coupon_left_amount': product[16],
-        //     'coupon_text': product[17],
-        //     'coupon_start': product[18],
-        //     'coupon_end': product[19],
-        //     'coupon_link': product[21],
-        //     'coupon_command': null,
-        //     'coupon_short_url': product[21],
-        //     'uploadCategory': product[4]
-        // };
         p.coupon_price = getCouponPrice(p.coupon_text);
         p.real_price = p.price - Number(p.coupon_price);
         p.real_price = p.real_price > 0 ? p.real_price : p.price;
@@ -98,7 +73,7 @@ function parseXLSDaily(xlsArr, cid, brand_id, description) {
         return p;
     }).filter(function (p, index) {
         //过滤空白行和销量过低的商品,这里表头不满足p.monthly_sold，所以也被隐含的去除了。
-        return p.product_id && p.product_name && Number.parseInt(p.monthly_sold) > 200;
+        return p.product_id && p.product_name;
     });
 }
 

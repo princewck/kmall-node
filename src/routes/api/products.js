@@ -232,10 +232,15 @@ function uploadXls(req, res, parser, source) {
         var uploadCategoryMap = {};
         var categoryGroupMap = {};
         var newUploadCategories = [];
-        if (!(productList instanceof Array) || !productList.length) {
+        if (!(productList instanceof Array)) {
             response.setCode(-1);
             response.setMessage('提交的数据不合法');
             return res.send(response);
+        }
+        if (!productList.length) {
+            response.setCode(-2);
+            response.setMessage('列表合法数据条数为空');
+            return res.send(response);            
         }
         let pikCid = product => {
             let uploadCname = product.uploadCategory;
